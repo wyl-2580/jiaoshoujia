@@ -1,0 +1,19 @@
+-- ${functionName}菜单
+INSERT INTO sys_menu (menu_name, parent_id, order_num, path, component, menu_type, perms, icon, status)
+VALUES ('${functionName}', 0, 1, '${businessName}', '${moduleName}/${businessName}/index', 'C', '${moduleName}:${businessName}:list', '#', '0');
+
+-- 查询按钮
+INSERT INTO sys_menu (menu_name, parent_id, order_num, menu_type, perms, status)
+VALUES ('${functionName}查询', @parentId, 1, 'F', '${moduleName}:${businessName}:query', '0');
+
+-- 新增按钮
+INSERT INTO sys_menu (menu_name, parent_id, order_num, menu_type, perms, status)
+VALUES ('${functionName}新增', @parentId, 2, 'F', '${moduleName}:${businessName}:add', '0');
+
+-- 修改按钮
+INSERT INTO sys_menu (menu_name, parent_id, order_num, menu_type, perms, status)
+VALUES ('${functionName}修改', @parentId, 3, 'F', '${moduleName}:${businessName}:edit', '0');
+
+-- 删除按钮
+INSERT INTO sys_menu (menu_name, parent_id, order_num, menu_type, perms, status)
+VALUES ('${functionName}删除', @parentId, 4, 'F', '${moduleName}:${businessName}:remove', '0');

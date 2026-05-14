@@ -1,0 +1,43 @@
+package com.jiaoshoujia.common.exception;
+
+import java.io.Serial;
+
+public class BusinessException extends RuntimeException {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
+
+    private int code;
+
+    public BusinessException() {
+        super();
+    }
+
+    public BusinessException(String message) {
+        super(message);
+        this.code = 500;
+    }
+
+    public BusinessException(int code, String message) {
+        super(message);
+        this.code = code;
+    }
+
+    public BusinessException(String message, Throwable cause) {
+        super(message, cause);
+        this.code = 500;
+    }
+
+    public BusinessException(int code, String message, Throwable cause) {
+        super(message, cause);
+        this.code = code;
+    }
+
+    public int getCode() {
+        return code;
+    }
+
+    public void setCode(int code) {
+        this.code = code;
+    }
+}

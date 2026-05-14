@@ -1,0 +1,53 @@
+package ${packageName}.${moduleName}.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import ${packageName}.${moduleName}.domain.${className};
+import ${packageName}.${moduleName}.mapper.${className}Mapper;
+import ${packageName}.${moduleName}.service.I${className}Service;
+import org.springframework.stereotype.Service;
+
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * ${functionName} 服务实现
+ *
+ * @author ${author}
+ * @date ${datetime}
+ */
+@Service
+public class ${className}ServiceImpl implements I${className}Service {
+
+    private final ${className}Mapper ${classname}Mapper;
+
+    public ${className}ServiceImpl(${className}Mapper ${classname}Mapper) {
+        this.${classname}Mapper = ${classname}Mapper;
+    }
+
+    @Override
+    public Page<${className}> select${className}Page(Page<${className}> page, ${className} query) {
+        LambdaQueryWrapper<${className}> wrapper = new LambdaQueryWrapper<>();
+        return ${classname}Mapper.selectPage(page, wrapper);
+    }
+
+    @Override
+    public ${className} select${className}ById(Long id) {
+        return ${classname}Mapper.selectById(id);
+    }
+
+    @Override
+    public int insert${className}(${className} ${classname}) {
+        return ${classname}Mapper.insert(${classname});
+    }
+
+    @Override
+    public int update${className}(${className} ${classname}) {
+        return ${classname}Mapper.updateById(${classname});
+    }
+
+    @Override
+    public int delete${className}ByIds(Long[] ids) {
+        return ${classname}Mapper.deleteBatchIds(Arrays.asList(ids));
+    }
+}

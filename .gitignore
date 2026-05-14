@@ -1,0 +1,47 @@
+# Compiled files
+*.class
+*.jar
+*.war
+*.ear
+
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+
+# Node.js
+node_modules/
+dist/
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Logs
+logs/
+*.log
+
+# Uploads
+uploads/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Keys
+# 仓库内置开发用密钥对，拉取即可运行
+# 生产环境必须替换为独立生成的密钥（见 README）

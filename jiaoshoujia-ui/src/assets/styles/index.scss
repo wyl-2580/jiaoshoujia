@@ -1,0 +1,113 @@
+@use './variables.scss' as *;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family:
+    'Helvetica Neue',
+    Helvetica,
+    'PingFang SC',
+    'Hiragino Sans GB',
+    'Microsoft YaHei',
+    Arial,
+    sans-serif;
+  font-size: $font-size-base;
+  color: #333;
+  background-color: $bg-color;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  height: 100%;
+}
+
+a {
+  text-decoration: none;
+  color: $primary-color;
+}
+
+// Scrollbar
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(144, 147, 153, 0.3);
+  border-radius: 3px;
+
+  &:hover {
+    background: rgba(144, 147, 153, 0.5);
+  }
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+// Sidebar menu overrides
+.el-menu {
+  border-right: none !important;
+}
+
+.sidebar-container {
+  .el-menu-item,
+  .el-sub-menu__title {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .el-menu-item.is-active {
+    background-color: $sidebar-active-bg !important;
+  }
+
+  .el-menu-item:hover,
+  .el-sub-menu__title:hover {
+    background-color: $sidebar-hover-bg !important;
+  }
+
+  .el-sub-menu .el-menu-item {
+    min-width: 0 !important;
+  }
+}
+
+// NProgress overrides
+#nprogress .bar {
+  background: $primary-color !important;
+}
+
+// Table styles
+.el-table {
+  th {
+    background-color: #f5f7fa !important;
+    color: #606266;
+    font-weight: 600;
+  }
+}
+
+// Pagination
+.el-pagination {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+// Dialog
+.el-dialog__header {
+  border-bottom: 1px solid $border-color;
+  margin-right: 0;
+}
+
+.el-dialog__footer {
+  border-top: 1px solid $border-color;
+}

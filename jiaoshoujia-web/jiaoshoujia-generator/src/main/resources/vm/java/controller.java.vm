@@ -1,0 +1,65 @@
+package ${packageName}.controller.${moduleName};
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.jiaoshoujia.common.annotation.Log;
+import com.jiaoshoujia.common.core.PageResult;
+import com.jiaoshoujia.common.core.R;
+import com.jiaoshoujia.common.enums.BusinessType;
+import ${packageName}.${moduleName}.domain.${className};
+import ${packageName}.${moduleName}.service.I${className}Service;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * ${functionName} Controller
+ *
+ * @author ${author}
+ * @date ${datetime}
+ */
+@RestController
+@RequestMapping("/${moduleName}/${businessName}")
+public class ${className}Controller {
+
+    private final I${className}Service ${classname}Service;
+
+    public ${className}Controller(I${className}Service ${classname}Service) {
+        this.${classname}Service = ${classname}Service;
+    }
+
+    @PreAuthorize("hasAuthority('${moduleName}:${businessName}:list')")
+    @GetMapping("/list")
+    public R<PageResult<${className}>> list(${className} query,
+                                            @RequestParam(defaultValue = "1") Integer pageNum,
+                                            @RequestParam(defaultValue = "10") Integer pageSize) {
+        Page<${className}> page = new Page<>(pageNum, pageSize);
+        Page<${className}> result = ${classname}Service.select${className}Page(page, query);
+        return R.ok(PageResult.of(result.getTotal(), result.getRecords()));
+    }
+
+    @PreAuthorize("hasAuthority('${moduleName}:${businessName}:query')")
+    @GetMapping("/{id}")
+    public R<${className}> getInfo(@PathVariable Long id) {
+        return R.ok(${classname}Service.select${className}ById(id));
+    }
+
+    @PreAuthorize("hasAuthority('${moduleName}:${businessName}:add')")
+    @Log(title = "${functionName}", businessType = BusinessType.INSERT)
+    @PostMapping
+    public R<Void> add(@RequestBody ${className} ${classname}) {
+        return ${classname}Service.insert${className}(${classname}) > 0 ? R.ok() : R.fail();
+    }
+
+    @PreAuthorize("hasAuthority('${moduleName}:${businessName}:edit')")
+    @Log(title = "${functionName}", businessType = BusinessType.UPDATE)
+    @PutMapping
+    public R<Void> edit(@RequestBody ${className} ${classname}) {
+        return ${classname}Service.update${className}(${classname}) > 0 ? R.ok() : R.fail();
+    }
+
+    @PreAuthorize("hasAuthority('${moduleName}:${businessName}:remove')")
+    @Log(title = "${functionName}", businessType = BusinessType.DELETE)
+    @DeleteMapping("/{ids}")
+    public R<Void> remove(@PathVariable Long[] ids) {
+        return ${classname}Service.delete${className}ByIds(ids) > 0 ? R.ok() : R.fail();
+    }
+}

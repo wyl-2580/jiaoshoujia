@@ -1,0 +1,7 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:jiaoshoujia}
+    username: ${DB_USER:postgres}
+    # WARNING: 生产环境必须通过环境变量 DB_PASSWORD 设置强密码，禁止使用默认值
+    password: ${DB_PASSWORD:postgres}

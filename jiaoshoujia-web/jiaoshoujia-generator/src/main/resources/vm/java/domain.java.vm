@@ -1,0 +1,40 @@
+package ${packageName}.${moduleName}.domain;
+
+#foreach($import in $importList)
+import ${import};
+#end
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.jiaoshoujia.common.core.BaseEntity;
+
+/**
+ * ${functionName} ${tableName}
+ *
+ * @author ${author}
+ * @date ${datetime}
+ */
+@TableName("${tableName}")
+public class ${className} extends BaseEntity {
+
+#foreach($column in $columns)
+#if($column.javaField != 'id' && $column.javaField != 'createBy' && $column.javaField != 'createTime' && $column.javaField != 'updateBy' && $column.javaField != 'updateTime' && $column.javaField != 'remark' && $column.javaField != 'delFlag')
+#if($column.columnComment && $column.columnComment != '')
+    /** ${column.columnComment} */
+#end
+    private ${column.javaType} ${column.javaField};
+
+#end
+#end
+#foreach($column in $columns)
+#if($column.javaField != 'id' && $column.javaField != 'createBy' && $column.javaField != 'createTime' && $column.javaField != 'updateBy' && $column.javaField != 'updateTime' && $column.javaField != 'remark' && $column.javaField != 'delFlag')
+#set($capitalField = $column.javaField.substring(0,1).toUpperCase() + $column.javaField.substring(1))
+    public ${column.javaType} get${capitalField}() {
+        return ${column.javaField};
+    }
+
+    public void set${capitalField}(${column.javaType} ${column.javaField}) {
+        this.${column.javaField} = ${column.javaField};
+    }
+
+#end
+#end
+}
