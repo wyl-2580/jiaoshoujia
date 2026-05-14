@@ -1,6 +1,5 @@
 package com.jiaoshoujia.system.service.impl;
 
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -12,6 +11,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jiaoshoujia.common.annotation.DataScope;
 import com.jiaoshoujia.common.exception.BusinessException;
 import com.jiaoshoujia.common.utils.MessageUtils;
+import com.jiaoshoujia.common.utils.SecurityUtils;
 import com.jiaoshoujia.common.utils.StringUtils;
 import com.jiaoshoujia.system.domain.SysDept;
 import com.jiaoshoujia.system.domain.SysRole;
@@ -85,6 +85,11 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Transactional(rollbackFor = Exception.class)
     @Override
     public int updateUser(SysUser user) {
+        if (!checkUsernameUnique(user)) {
+            throw new BusinessException(MessageUtils.message("user.username.exists", user.getUsername()));
+        }
+        user.setPassword(null);
+        user.setStatus(null);
         updateById(user);
         userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, user.getId()));
         insertUserRoles(user.getId(), user.getRoleIds());
@@ -94,6 +99,14 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Transactional(rollbackFor = Exception.class)
     @Override
     public int deleteUserByIds(Long[] userIds) {
+        for (Long userId : userIds) {
+            if (SecurityUtils.isAdmin(userId)) {
+                throw new BusinessException(MessageUtils.message("user.admin.not.allow.delete"));
+            }
+            if (userId.equals(SecurityUtils.getUserId())) {
+                throw new BusinessException(MessageUtils.message("user.current.not.allow.delete"));
+            }
+        }
         List<Long> ids = Arrays.asList(userIds);
         userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().in(SysUserRole::getUserId, ids));
         removeBatchByIds(ids);
@@ -102,6 +115,9 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     @Override
     public int resetPwd(SysUser user) {
+        if (SecurityUtils.isAdmin(user.getId()) && !SecurityUtils.isAdmin(SecurityUtils.getUserId())) {
+            throw new BusinessException(MessageUtils.message("user.admin.not.allow.reset"));
+        }
         return lambdaUpdate().eq(SysUser::getId, user.getId())
                 .set(SysUser::getPassword, user.getPassword())
                 .update() ? 1 : 0;
@@ -109,6 +125,9 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     @Override
     public int updateUserStatus(SysUser user) {
+        if (SecurityUtils.isAdmin(user.getId())) {
+            throw new BusinessException(MessageUtils.message("user.admin.not.allow.disable"));
+        }
         return lambdaUpdate().eq(SysUser::getId, user.getId())
                 .set(SysUser::getStatus, user.getStatus())
                 .update() ? 1 : 0;
@@ -117,10 +136,19 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     public boolean checkUsernameUnique(SysUser user) {
         SysUser existing = lambdaQuery().eq(SysUser::getUsername, user.getUsername()).one();
-        if (existing != null && !existing.getId().equals(user.getId())) {
+        if (existing != null && (user.getId() == null || !existing.getId().equals(user.getId()))) {
             return false;
         }
         return true;
+    }
+
+    @Override
+    public void checkPasswordStrength(String rawPassword) {
+        if (rawPassword == null || rawPassword.length() < 8
+                || !rawPassword.matches(".*[a-zA-Z].*")
+                || !rawPassword.matches(".*\\d.*")) {
+            throw new BusinessException(MessageUtils.message("user.password.too.weak"));
+        }
     }
 
     private void populateUserExtras(SysUser user) {

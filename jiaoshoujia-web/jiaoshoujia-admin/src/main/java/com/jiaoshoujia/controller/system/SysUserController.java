@@ -24,12 +24,14 @@ public class SysUserController {
         this.userService = userService;
     }
 
+    private static final int MAX_PAGE_SIZE = 100;
+
     @PreAuthorize("hasAuthority('system:user:list')")
     @GetMapping("/list")
     public R<PageResult<SysUser>> list(SysUserQuery query,
                                        @RequestParam(defaultValue = "1") Integer pageNum,
                                        @RequestParam(defaultValue = "10") Integer pageSize) {
-        Page<SysUser> page = new Page<>(pageNum, pageSize);
+        Page<SysUser> page = new Page<>(pageNum, Math.min(pageSize, MAX_PAGE_SIZE));
         Page<SysUser> result = userService.selectUserPage(page, query);
         return R.ok(PageResult.of(result.getTotal(), result.getRecords()));
     }
@@ -44,6 +46,7 @@ public class SysUserController {
     @Log(title = "用户管理", businessType = BusinessType.INSERT)
     @PostMapping
     public R<Void> add(@RequestBody SysUser user) {
+        userService.checkPasswordStrength(user.getPassword());
         user.setPassword(SecurityUtils.encryptPassword(user.getPassword()));
         return userService.insertUser(user) > 0 ? R.ok() : R.fail();
     }
@@ -66,6 +69,7 @@ public class SysUserController {
     @Log(title = "用户管理", businessType = BusinessType.UPDATE)
     @PutMapping("/resetPwd")
     public R<Void> resetPwd(@RequestBody SysUser user) {
+        userService.checkPasswordStrength(user.getPassword());
         user.setPassword(SecurityUtils.encryptPassword(user.getPassword()));
         return userService.resetPwd(user) > 0 ? R.ok() : R.fail();
     }

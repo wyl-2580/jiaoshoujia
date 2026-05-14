@@ -16,14 +16,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.jiaoshoujia.common.utils.SecurityUtils;
 
 import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,6 +59,8 @@ class SysUserServiceTest {
         testUser.setDeptId(1L);
         testUser.setStatus(0);
     }
+
+    // ==================== 查询相关 ====================
 
     @Test
     @DisplayName("根据用户名查询用户 - 存在")
@@ -103,6 +107,8 @@ class SysUserServiceTest {
         assertEquals("admin", result.getRoles().get(0).getRoleName());
     }
 
+    // ==================== 新增用户 ====================
+
     @Test
     @DisplayName("新增用户 - 用户名唯一校验通过")
     void insertUser_success() {
@@ -133,6 +139,119 @@ class SysUserServiceTest {
 
         assertThrows(BusinessException.class, () -> userService.insertUser(newUser));
     }
+
+    // ==================== 更新用户 ====================
+
+    @Test
+    @DisplayName("更新用户 - 用户名重复抛异常")
+    void updateUser_duplicateUsername() {
+        SysUser user = new SysUser();
+        user.setId(100L);
+        user.setUsername("taken");
+
+        SysUser existing = new SysUser();
+        existing.setId(200L);
+        existing.setUsername("taken");
+        when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing);
+
+        assertThrows(BusinessException.class, () -> userService.updateUser(user));
+    }
+
+    @Test
+    @DisplayName("更新用户 - password和status字段被置空防止越权")
+    void updateUser_clearsSensitiveFields() {
+        SysUser user = new SysUser();
+        user.setId(100L);
+        user.setUsername("testuser");
+        user.setPassword("hackedPassword");
+        user.setStatus(1);
+        user.setRoleIds(new Long[]{});
+
+        when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
+        when(userMapper.updateById(any(SysUser.class))).thenReturn(1);
+        when(userRoleMapper.delete(any(LambdaQueryWrapper.class))).thenReturn(0);
+
+        userService.updateUser(user);
+
+        assertNull(user.getPassword());
+        assertNull(user.getStatus());
+    }
+
+    // ==================== 删除用户 ====================
+
+    @Test
+    @DisplayName("删除用户 - 同时清理角色关联")
+    void deleteUserByIds_success() {
+        Long[] userIds = {100L, 200L};
+
+        try (MockedStatic<SecurityUtils> securityMock = mockStatic(SecurityUtils.class)) {
+            securityMock.when(() -> SecurityUtils.isAdmin(any())).thenReturn(false);
+            securityMock.when(SecurityUtils::getUserId).thenReturn(999L);
+            when(userRoleMapper.delete(any(LambdaQueryWrapper.class))).thenReturn(2);
+
+            int result = userService.deleteUserByIds(userIds);
+
+            assertEquals(1, result);
+            verify(userRoleMapper).delete(any(LambdaQueryWrapper.class));
+        }
+    }
+
+    @Test
+    @DisplayName("删除用户 - 不允许删除超级管理员")
+    void deleteUserByIds_adminForbidden() {
+        Long[] userIds = {1L};
+
+        try (MockedStatic<SecurityUtils> securityMock = mockStatic(SecurityUtils.class)) {
+            securityMock.when(() -> SecurityUtils.isAdmin(1L)).thenReturn(true);
+
+            assertThrows(BusinessException.class, () -> userService.deleteUserByIds(userIds));
+        }
+    }
+
+    @Test
+    @DisplayName("删除用户 - 不允许删除当前登录用户")
+    void deleteUserByIds_selfForbidden() {
+        Long[] userIds = {100L};
+
+        try (MockedStatic<SecurityUtils> securityMock = mockStatic(SecurityUtils.class)) {
+            securityMock.when(() -> SecurityUtils.isAdmin(100L)).thenReturn(false);
+            securityMock.when(SecurityUtils::getUserId).thenReturn(100L);
+
+            assertThrows(BusinessException.class, () -> userService.deleteUserByIds(userIds));
+        }
+    }
+
+    // ==================== 重置密码 ====================
+
+    @Test
+    @DisplayName("重置密码 - 非管理员不能重置超管密码")
+    void resetPwd_adminForbiddenForNonAdmin() {
+        SysUser user = new SysUser();
+        user.setId(1L);
+        user.setPassword("newEncryptedPwd");
+
+        try (MockedStatic<SecurityUtils> securityMock = mockStatic(SecurityUtils.class)) {
+            securityMock.when(() -> SecurityUtils.isAdmin(1L)).thenReturn(true);
+            securityMock.when(SecurityUtils::getUserId).thenReturn(100L);
+            securityMock.when(() -> SecurityUtils.isAdmin(100L)).thenReturn(false);
+
+            assertThrows(BusinessException.class, () -> userService.resetPwd(user));
+        }
+    }
+
+    // ==================== 更新用户状态 ====================
+
+    @Test
+    @DisplayName("更新状态 - 不允许禁用超级管理员")
+    void updateUserStatus_adminForbidden() {
+        SysUser user = new SysUser();
+        user.setId(1L);
+        user.setStatus(1);
+
+        assertThrows(BusinessException.class, () -> userService.updateUserStatus(user));
+    }
+
+    // ==================== 用户名唯一校验 ====================
 
     @Test
     @DisplayName("用户名唯一校验 - 新用户名唯一")
@@ -176,14 +295,48 @@ class SysUserServiceTest {
     }
 
     @Test
-    @DisplayName("删除用户 - 同时清理角色关联")
-    void deleteUserByIds() {
-        Long[] userIds = {100L, 200L};
-        when(userRoleMapper.delete(any(LambdaQueryWrapper.class))).thenReturn(2);
+    @DisplayName("用户名唯一校验 - 新用户id为null时被占用")
+    void checkUsernameUnique_newUserIdNull_taken() {
+        SysUser user = new SysUser();
+        user.setUsername("testuser");
 
-        int result = userService.deleteUserByIds(userIds);
+        SysUser existing = new SysUser();
+        existing.setId(200L);
+        existing.setUsername("testuser");
+        when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing);
 
-        assertEquals(1, result);
-        verify(userRoleMapper).delete(any(LambdaQueryWrapper.class));
+        assertFalse(userService.checkUsernameUnique(user));
+    }
+
+    // ==================== 密码强度校验 ====================
+
+    @Test
+    @DisplayName("密码强度 - null密码抛异常")
+    void checkPasswordStrength_null() {
+        assertThrows(BusinessException.class, () -> userService.checkPasswordStrength(null));
+    }
+
+    @Test
+    @DisplayName("密码强度 - 过短抛异常")
+    void checkPasswordStrength_tooShort() {
+        assertThrows(BusinessException.class, () -> userService.checkPasswordStrength("Ab1"));
+    }
+
+    @Test
+    @DisplayName("密码强度 - 纯数字抛异常")
+    void checkPasswordStrength_digitsOnly() {
+        assertThrows(BusinessException.class, () -> userService.checkPasswordStrength("12345678"));
+    }
+
+    @Test
+    @DisplayName("密码强度 - 纯字母抛异常")
+    void checkPasswordStrength_lettersOnly() {
+        assertThrows(BusinessException.class, () -> userService.checkPasswordStrength("abcdefgh"));
+    }
+
+    @Test
+    @DisplayName("密码强度 - 合格密码通过")
+    void checkPasswordStrength_valid() {
+        assertDoesNotThrow(() -> userService.checkPasswordStrength("Admin123"));
     }
 }

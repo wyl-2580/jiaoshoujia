@@ -3,6 +3,7 @@ package com.jiaoshoujia.framework.security;
 import java.util.Set;
 
 import com.jiaoshoujia.common.exception.BusinessException;
+import com.jiaoshoujia.common.utils.MessageUtils;
 import com.jiaoshoujia.system.domain.SysUser;
 import com.jiaoshoujia.system.service.ISysMenuService;
 import com.jiaoshoujia.system.service.ISysUserService;
@@ -26,10 +27,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         SysUser user = userService.selectUserByUsername(username);
         if (user == null) {
-            throw new UsernameNotFoundException("用户不存在: " + username);
+            throw new UsernameNotFoundException(MessageUtils.message("auth.login.failed"));
         }
         if (user.getStatus() != null && user.getStatus() == 1) {
-            throw new BusinessException("账号已被停用: " + username);
+            throw new BusinessException(MessageUtils.message("auth.login.failed"));
         }
         Set<String> permissions = menuService.selectMenuPermsByUserId(user.getId());
         return new LoginUser(user.getId(), user.getUsername(), user.getPassword(),

@@ -1,5 +1,9 @@
 package com.jiaoshoujia.framework.security;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,6 +27,9 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuthenticationEntryPointImpl authenticationEntryPoint;
 
+    @Value("${knife4j.enable:false}")
+    private boolean knife4jEnabled;
+
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                           AuthenticationEntryPointImpl authenticationEntryPoint) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
@@ -31,20 +38,22 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        List<String> permitPaths = new ArrayList<>(List.of(
+                "/auth/login",
+                "/auth/refresh",
+                "/captcha",
+                "/favicon.ico"
+        ));
+        if (knife4jEnabled) {
+            permitPaths.addAll(List.of(
+                    "/doc.html", "/webjars/**", "/v3/api-docs/**", "/swagger-resources/**"));
+        }
+
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/auth/login",
-                                "/auth/register",
-                                "/captcha",
-                                "/doc.html",
-                                "/webjars/**",
-                                "/v3/api-docs/**",
-                                "/swagger-resources/**",
-                                "/favicon.ico"
-                        ).permitAll()
+                        .requestMatchers(permitPaths.toArray(String[]::new)).permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(eh -> eh.authenticationEntryPoint(authenticationEntryPoint))

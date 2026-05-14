@@ -40,6 +40,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = header.substring(Constants.TOKEN_PREFIX.length()).trim();
         try {
+            if (jwtTokenProvider.isTokenExpired(token)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
             String tokenId = jwtTokenProvider.getTokenId(token);
             String cacheKey = Constants.LOGIN_USER_KEY + tokenId;
             LoginUser loginUser = cacheService.get(cacheKey);

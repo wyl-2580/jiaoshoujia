@@ -3,6 +3,9 @@ spring:
     restart:
       enabled: true
 
+knife4j:
+  enable: true
+
 logging:
   level:
     com.jiaoshoujia: debug

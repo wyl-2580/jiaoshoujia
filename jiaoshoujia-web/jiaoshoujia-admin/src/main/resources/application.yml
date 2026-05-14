@@ -37,6 +37,8 @@ jwt:
     public-key-location: classpath:keys/public.pem
 
 app:
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
   cache:
     type: caffeine
   file:
@@ -45,6 +47,6 @@ app:
     max-size: 10485760
 
 knife4j:
-  enable: true
+  enable: ${KNIFE4J_ENABLE:false}
   setting:
     language: zh_cn

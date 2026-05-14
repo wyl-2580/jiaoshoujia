@@ -22,12 +22,14 @@ public class SysDictDataController {
         this.dictDataService = dictDataService;
     }
 
+    private static final int MAX_PAGE_SIZE = 100;
+
     @PreAuthorize("hasAuthority('system:dict:list')")
     @GetMapping("/list")
     public R<PageResult<SysDictData>> list(SysDictData dictData,
                                             @RequestParam(defaultValue = "1") Integer pageNum,
                                             @RequestParam(defaultValue = "10") Integer pageSize) {
-        Page<SysDictData> page = new Page<>(pageNum, pageSize);
+        Page<SysDictData> page = new Page<>(pageNum, Math.min(pageSize, MAX_PAGE_SIZE));
         Page<SysDictData> result = dictDataService.selectDictDataPage(page, dictData);
         return R.ok(PageResult.of(result.getTotal(), result.getRecords()));
     }

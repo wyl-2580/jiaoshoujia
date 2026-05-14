@@ -24,4 +24,6 @@ public interface ISysUserService extends IService<SysUser> {
     int updateUserStatus(SysUser user);
 
     boolean checkUsernameUnique(SysUser user);
+
+    void checkPasswordStrength(String rawPassword);
 }

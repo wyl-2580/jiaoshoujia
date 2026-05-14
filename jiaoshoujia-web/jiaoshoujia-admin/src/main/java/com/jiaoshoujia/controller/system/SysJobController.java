@@ -20,12 +20,14 @@ public class SysJobController {
         this.jobService = jobService;
     }
 
+    private static final int MAX_PAGE_SIZE = 100;
+
     @PreAuthorize("hasAuthority('system:job:list')")
     @GetMapping("/list")
     public R<PageResult<SysJob>> list(SysJob job,
                                       @RequestParam(defaultValue = "1") Integer pageNum,
                                       @RequestParam(defaultValue = "10") Integer pageSize) {
-        Page<SysJob> page = new Page<>(pageNum, pageSize);
+        Page<SysJob> page = new Page<>(pageNum, Math.min(pageSize, MAX_PAGE_SIZE));
         Page<SysJob> result = jobService.selectJobPage(page, job);
         return R.ok(PageResult.of(result.getTotal(), result.getRecords()));
     }

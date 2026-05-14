@@ -1,5 +1,6 @@
 package com.jiaoshoujia.system.quartz;
 
+import com.jiaoshoujia.common.exception.BusinessException;
 import com.jiaoshoujia.common.utils.StringUtils;
 import com.jiaoshoujia.system.domain.SysJob;
 import org.springframework.beans.BeansException;
@@ -10,9 +11,19 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Component
 public class QuartzInvokeUtils implements ApplicationContextAware {
+
+    private static final Set<String> ALLOWED_BEAN_PREFIXES = Set.of(
+            "com.jiaoshoujia.system.quartz.task."
+    );
+
+    private static final Set<String> BLOCKED_BEAN_NAMES = Set.of(
+            "dataSource", "environment", "applicationContext",
+            "scheduler", "transactionManager", "restTemplate"
+    );
 
     private static ApplicationContext applicationContext;
 
@@ -23,11 +34,19 @@ public class QuartzInvokeUtils implements ApplicationContextAware {
 
     public static void invokeMethod(SysJob sysJob) throws Exception {
         String invokeTarget = sysJob.getInvokeTarget();
+        validateInvokeTarget(invokeTarget);
+
         String beanName = getBeanName(invokeTarget);
         String methodName = getMethodName(invokeTarget);
         List<Object[]> methodParams = getMethodParams(invokeTarget);
 
         Object bean = applicationContext.getBean(beanName);
+        String beanClassName = bean.getClass().getName();
+        boolean allowed = ALLOWED_BEAN_PREFIXES.stream().anyMatch(beanClassName::startsWith);
+        if (!allowed) {
+            throw new BusinessException("不允许调用该目标: " + beanName);
+        }
+
         if (methodParams.isEmpty()) {
             Method method = bean.getClass().getMethod(methodName);
             method.invoke(bean);
@@ -40,6 +59,23 @@ public class QuartzInvokeUtils implements ApplicationContextAware {
             }
             Method method = bean.getClass().getMethod(methodName, paramTypes);
             method.invoke(bean, paramValues);
+        }
+    }
+
+    private static void validateInvokeTarget(String invokeTarget) {
+        if (StringUtils.isEmpty(invokeTarget) || !invokeTarget.contains(".")) {
+            throw new BusinessException("调用目标格式不合法");
+        }
+        String beanName = getBeanName(invokeTarget);
+        if (BLOCKED_BEAN_NAMES.contains(beanName)) {
+            throw new BusinessException("不允许调用该目标: " + beanName);
+        }
+        String lower = invokeTarget.toLowerCase();
+        if (lower.contains("runtime") || lower.contains("processbuilder")
+                || lower.contains("class.forname") || lower.contains("classloader")
+                || lower.contains("exec(") || lower.contains("shutdown")
+                || lower.contains("exit(")) {
+            throw new BusinessException("调用目标包含危险关键字");
         }
     }
 

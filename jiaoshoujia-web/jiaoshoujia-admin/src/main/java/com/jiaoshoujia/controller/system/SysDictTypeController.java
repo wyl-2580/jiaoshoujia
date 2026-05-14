@@ -22,12 +22,14 @@ public class SysDictTypeController {
         this.dictTypeService = dictTypeService;
     }
 
+    private static final int MAX_PAGE_SIZE = 100;
+
     @PreAuthorize("hasAuthority('system:dict:list')")
     @GetMapping("/list")
     public R<PageResult<SysDictType>> list(SysDictType dictType,
                                             @RequestParam(defaultValue = "1") Integer pageNum,
                                             @RequestParam(defaultValue = "10") Integer pageSize) {
-        Page<SysDictType> page = new Page<>(pageNum, pageSize);
+        Page<SysDictType> page = new Page<>(pageNum, Math.min(pageSize, MAX_PAGE_SIZE));
         Page<SysDictType> result = dictTypeService.selectDictTypePage(page, dictType);
         return R.ok(PageResult.of(result.getTotal(), result.getRecords()));
     }

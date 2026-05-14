@@ -22,12 +22,14 @@ public class SysRoleController {
         this.roleService = roleService;
     }
 
+    private static final int MAX_PAGE_SIZE = 100;
+
     @PreAuthorize("hasAuthority('system:role:list')")
     @GetMapping("/list")
     public R<PageResult<SysRole>> list(SysRole role,
                                        @RequestParam(defaultValue = "1") Integer pageNum,
                                        @RequestParam(defaultValue = "10") Integer pageSize) {
-        Page<SysRole> page = new Page<>(pageNum, pageSize);
+        Page<SysRole> page = new Page<>(pageNum, Math.min(pageSize, MAX_PAGE_SIZE));
         Page<SysRole> result = roleService.selectRolePage(page, role);
         return R.ok(PageResult.of(result.getTotal(), result.getRecords()));
     }

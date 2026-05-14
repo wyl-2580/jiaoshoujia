@@ -42,6 +42,5 @@ uploads/
 .env.local
 .env.*.local
 
-# Keys
-# 仓库内置开发用密钥对，拉取即可运行
-# 生产环境必须替换为独立生成的密钥（见 README）
+# Keys - 私钥禁止提交到仓库
+**/keys/private.pem

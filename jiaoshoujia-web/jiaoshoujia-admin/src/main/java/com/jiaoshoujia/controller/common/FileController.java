@@ -75,8 +75,9 @@ public class FileController {
             throw new IllegalArgumentException("文件名不合法");
         }
 
-        Path filePath = Paths.get(uploadPath, fileName);
-        if (!Files.exists(filePath)) {
+        Path basePath = Paths.get(uploadPath).toAbsolutePath().normalize();
+        Path filePath = basePath.resolve(fileName).normalize();
+        if (!filePath.startsWith(basePath) || !Files.exists(filePath)) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
