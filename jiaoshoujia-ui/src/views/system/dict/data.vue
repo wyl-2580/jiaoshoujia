@@ -10,8 +10,8 @@
       </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="数据状态" clearable>
-          <el-option label="正常" :value="0" />
-          <el-option label="停用" :value="1" />
+          <el-option label="正常" value="0" />
+          <el-option label="停用" value="1" />
         </el-select>
       </el-form-item>
       <el-form-item>
@@ -39,7 +39,7 @@
     <!-- Table -->
     <el-table v-loading="loading" :data="dictDataList" @selection-change="handleSelectionChange" class="data-table">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="字典编码" prop="id" width="100" align="center" />
+      <el-table-column label="序号" type="index" width="60" align="center" :index="(index: number) => (queryParams.pageNum - 1) * queryParams.pageSize + index + 1" />
       <el-table-column label="字典排序" prop="dictSort" width="100" align="center" />
       <el-table-column label="字典标签" prop="dictLabel" show-overflow-tooltip />
       <el-table-column label="字典键值" prop="dictValue" show-overflow-tooltip />

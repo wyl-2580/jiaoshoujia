@@ -47,26 +47,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             throw new BusinessException(MessageUtils.message("auth.login.failed"));
         }
         Set<String> permissions = menuService.selectMenuPermsByUserId(user.getId());
-        int dataScope = resolveUserDataScope(user.getId());
+        int dataScope = roleService.resolveUserDataScope(user.getId());
         return new LoginUser(user.getId(), user.getUsername(), user.getPassword(),
                 user.getDeptId(), permissions, dataScope);
-    }
-
-    private int resolveUserDataScope(Long userId) {
-        if (SecurityUtils.isAdmin(userId)) {
-            return 1;
-        }
-        List<SysRole> roles = roleService.selectRolesByUserId(userId);
-        int minScope = 5;
-        for (SysRole role : roles) {
-            if (role.getDataScope() != null) {
-                try {
-                    int scope = Integer.parseInt(role.getDataScope());
-                    minScope = Math.min(minScope, scope);
-                } catch (NumberFormatException ignored) {
-                }
-            }
-        }
-        return minScope;
     }
 }

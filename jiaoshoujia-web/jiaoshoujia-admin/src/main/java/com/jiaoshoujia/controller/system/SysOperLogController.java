@@ -24,12 +24,14 @@ public class SysOperLogController {
         this.operLogService = operLogService;
     }
 
+    private static final int MAX_PAGE_SIZE = 100;
+
     @PreAuthorize("hasAuthority('monitor:operlog:list')")
     @GetMapping("/list")
     public R<PageResult<SysOperLog>> list(SysOperLog operLog,
                                            @RequestParam(name = "pageNum", defaultValue = "1") Integer pageNum,
                                            @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
-        Page<SysOperLog> page = new Page<>(pageNum, pageSize);
+        Page<SysOperLog> page = new Page<>(pageNum, Math.min(pageSize, MAX_PAGE_SIZE));
         Page<SysOperLog> result = operLogService.selectOperLogPage(page, operLog);
         return R.ok(PageResult.of(result.getTotal(), result.getRecords()));
     }

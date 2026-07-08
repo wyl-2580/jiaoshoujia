@@ -51,7 +51,7 @@
     <!-- Table -->
     <el-table v-loading="loading" :data="logList" @selection-change="handleSelectionChange" class="data-table">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="日志编号" prop="id" width="90" align="center" />
+      <el-table-column label="序号" type="index" width="60" align="center" :index="(index: number) => (queryParams.pageNum - 1) * queryParams.pageSize + index + 1" />
       <el-table-column label="系统模块" prop="title" show-overflow-tooltip />
       <el-table-column label="业务类型" width="100" align="center">
         <template #default="{ row }">

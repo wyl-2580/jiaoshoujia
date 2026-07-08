@@ -18,11 +18,6 @@
             <groupId>com.jiaoshoujia</groupId>
             <artifactId>jiaoshoujia-system</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.jiaoshoujia</groupId>
-            <artifactId>jiaoshoujia-generator</artifactId>
-        </dependency>
-
         <!-- MySQL -->
         <dependency>
             <groupId>com.mysql</groupId>

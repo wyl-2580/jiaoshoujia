@@ -131,6 +131,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         if (!checkUsernameUnique(user)) {
             throw new BusinessException(MessageUtils.message("user.username.exists", user.getUsername()));
         }
+        checkRoleIdsValid(user.getRoleIds());
         if (!save(user)) {
             return 0;
         }
@@ -144,6 +145,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         if (!checkUsernameUnique(user)) {
             throw new BusinessException(MessageUtils.message("user.username.exists", user.getUsername()));
         }
+        checkRoleIdsValid(user.getRoleIds());
         checkSelfRoleChange(user);
         user.setPassword(null);
         user.setStatus(null);
@@ -176,6 +178,9 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         if (SecurityUtils.isAdmin(user.getId()) && !SecurityUtils.isAdmin(SecurityUtils.getUserId())) {
             throw new BusinessException(MessageUtils.message("user.admin.not.allow.reset"));
         }
+        if (user.getId().equals(SecurityUtils.getUserId())) {
+            throw new BusinessException(MessageUtils.message("user.current.not.allow.delete"));
+        }
         return lambdaUpdate().eq(SysUser::getId, user.getId())
                 .set(SysUser::getPassword, user.getPassword())
                 .update() ? 1 : 0;
@@ -185,6 +190,9 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     public int updateUserStatus(SysUser user) {
         if (SecurityUtils.isAdmin(user.getId())) {
             throw new BusinessException(MessageUtils.message("user.admin.not.allow.disable"));
+        }
+        if (user.getId().equals(SecurityUtils.getUserId())) {
+            throw new BusinessException(MessageUtils.message("user.self.not.allow.disable"));
         }
         return lambdaUpdate().eq(SysUser::getId, user.getId())
                 .set(SysUser::getStatus, user.getStatus())
@@ -247,6 +255,25 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
                 : Collections.emptySet();
         if (!currentRoleIds.equals(newRoleIds)) {
             throw new BusinessException(MessageUtils.message("user.self.role.not.allow.edit"));
+        }
+    }
+
+    /**
+     * 校验分配的 roleIds 是否合法（角色存在且启用）。
+     */
+    private void checkRoleIdsValid(Long[] roleIds) {
+        if (roleIds == null || roleIds.length == 0) {
+            return;
+        }
+        List<SysRole> roles = roleMapper.selectList(
+                new LambdaQueryWrapper<SysRole>().in(SysRole::getId, Arrays.asList(roleIds)));
+        if (roles.size() != roleIds.length) {
+            throw new BusinessException(MessageUtils.message("role.not.found"));
+        }
+        for (SysRole role : roles) {
+            if (role.getStatus() != null && role.getStatus() == 1) {
+                throw new BusinessException(MessageUtils.message("role.not.found"));
+            }
         }
     }
 

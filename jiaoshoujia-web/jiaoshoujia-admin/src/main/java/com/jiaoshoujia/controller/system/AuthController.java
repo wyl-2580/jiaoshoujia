@@ -79,7 +79,7 @@ public class AuthController {
             if (captchaEnabled) {
                 validateCaptcha(loginBody.code(), loginBody.uuid());
             }
-            checkLoginAttempts(username);
+            checkLoginAttempts(username, ip);
         } catch (BusinessException e) {
             loginInforService.recordLogin(username, ip, userAgent, 1, e.getMessage());
             throw e;
@@ -90,12 +90,12 @@ public class AuthController {
             authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(username, loginBody.password()));
         } catch (BadCredentialsException e) {
-            recordLoginFailure(username);
+            recordLoginFailure(username, ip);
             loginInforService.recordLogin(username, ip, userAgent, 1, MessageUtils.message("auth.login.failed"));
             return R.fail(MessageUtils.message("auth.login.failed"));
         }
 
-        clearLoginAttempts(username);
+        clearLoginAttempts(username, ip);
         loginInforService.recordLogin(username, ip, userAgent, 0, "登录成功");
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
 
@@ -115,7 +115,8 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public R<Void> logout(HttpServletRequest request) {
+    public R<Void> logout(@RequestBody(required = false) Map<String, String> body,
+                          HttpServletRequest request) {
         String token = resolveToken(request);
         if (StringUtils.isNotEmpty(token)) {
             String tokenId = jwtTokenProvider.getTokenId(token);
@@ -125,6 +126,16 @@ public class AuthController {
                 loginInforService.recordLogin(username, IpUtils.getIpAddr(request),
                         request.getHeader("User-Agent"), 0, "退出成功");
             } catch (Exception ignored) {
+            }
+        }
+        if (body != null) {
+            String refreshToken = body.get("refresh_token");
+            if (StringUtils.isNotEmpty(refreshToken)) {
+                try {
+                    String refreshTokenId = jwtTokenProvider.getTokenId(refreshToken);
+                    cacheService.delete(REFRESH_TOKEN_KEY + refreshTokenId);
+                } catch (Exception ignored) {
+                }
             }
         }
         return R.ok();
@@ -143,12 +154,10 @@ public class AuthController {
         }
 
         String refreshTokenId = jwtTokenProvider.getTokenId(refreshToken);
-        Long cachedUserId = cacheService.get(REFRESH_TOKEN_KEY + refreshTokenId);
+        Long cachedUserId = cacheService.getAndDelete(REFRESH_TOKEN_KEY + refreshTokenId);
         if (cachedUserId == null) {
             return R.fail("refresh_token已失效，请重新登录");
         }
-
-        cacheService.delete(REFRESH_TOKEN_KEY + refreshTokenId);
 
         Long userId = jwtTokenProvider.getUserId(refreshToken);
         if (!cachedUserId.equals(userId)) {
@@ -165,7 +174,7 @@ public class AuthController {
         }
 
         Set<String> permissions = menuService.selectMenuPermsByUserId(userId);
-        int dataScope = resolveUserDataScope(userId);
+        int dataScope = roleService.resolveUserDataScope(userId);
         LoginUser loginUser = new LoginUser(userId, username, user.getPassword(),
                 user.getDeptId(), permissions, dataScope);
 
@@ -205,6 +214,47 @@ public class AuthController {
         return R.ok(menus);
     }
 
+    @GetMapping("/profile")
+    public R<SysUser> profile() {
+        Long userId = SecurityUtils.getUserId();
+        SysUser user = userService.selectUserById(userId);
+        if (user != null) {
+            user.setPassword(null);
+        }
+        return R.ok(user);
+    }
+
+    @PutMapping("/profile")
+    public R<Void> updateProfile(@RequestBody SysUser user) {
+        Long userId = SecurityUtils.getUserId();
+        SysUser update = new SysUser();
+        update.setId(userId);
+        update.setNickname(user.getNickname());
+        update.setEmail(user.getEmail());
+        update.setPhone(user.getPhone());
+        update.setSex(user.getSex());
+        return userService.updateById(update) ? R.ok() : R.fail();
+    }
+
+    @PutMapping("/profile/password")
+    public R<Void> updatePassword(@RequestBody Map<String, String> body) {
+        String oldPassword = body.get("oldPassword");
+        String newPassword = body.get("newPassword");
+        if (StringUtils.isEmpty(oldPassword) || StringUtils.isEmpty(newPassword)) {
+            return R.fail("旧密码和新密码不能为空");
+        }
+        Long userId = SecurityUtils.getUserId();
+        SysUser user = userService.selectUserById(userId);
+        if (!SecurityUtils.matchesPassword(oldPassword, user.getPassword())) {
+            return R.fail("原密码错误");
+        }
+        userService.checkPasswordStrength(newPassword);
+        SysUser update = new SysUser();
+        update.setId(userId);
+        update.setPassword(SecurityUtils.encryptPassword(newPassword));
+        return userService.updateById(update) ? R.ok() : R.fail();
+    }
+
     private void validateCaptcha(String code, String uuid) {
         if (StringUtils.isEmpty(uuid) || StringUtils.isEmpty(code)) {
             throw new BusinessException("验证码不能为空");
@@ -220,8 +270,8 @@ public class AuthController {
         }
     }
 
-    private void checkLoginAttempts(String username) {
-        String key = Constants.LOGIN_ATTEMPT_KEY + username;
+    private void checkLoginAttempts(String username, String ip) {
+        String key = Constants.LOGIN_ATTEMPT_KEY + ip + ":" + username;
         Long attempts = cacheService.get(key);
         if (attempts != null && attempts >= Constants.MAX_LOGIN_ATTEMPTS) {
             throw new BusinessException(
@@ -229,16 +279,16 @@ public class AuthController {
         }
     }
 
-    private void recordLoginFailure(String username) {
-        String key = Constants.LOGIN_ATTEMPT_KEY + username;
+    private void recordLoginFailure(String username, String ip) {
+        String key = Constants.LOGIN_ATTEMPT_KEY + ip + ":" + username;
         long count = cacheService.increment(key);
         if (count == 1) {
             cacheService.expire(key, Constants.LOCK_DURATION_MINUTES, TimeUnit.MINUTES);
         }
     }
 
-    private void clearLoginAttempts(String username) {
-        cacheService.delete(Constants.LOGIN_ATTEMPT_KEY + username);
+    private void clearLoginAttempts(String username, String ip) {
+        cacheService.delete(Constants.LOGIN_ATTEMPT_KEY + ip + ":" + username);
     }
 
     private String resolveToken(HttpServletRequest request) {
@@ -247,24 +297,6 @@ public class AuthController {
             return bearerToken.substring(Constants.TOKEN_PREFIX.length());
         }
         return null;
-    }
-
-    private int resolveUserDataScope(Long userId) {
-        if (SecurityUtils.isAdmin(userId)) {
-            return 1;
-        }
-        var roles = roleService.selectRolesByUserId(userId);
-        int minScope = 5;
-        for (var role : roles) {
-            if (role.getDataScope() != null) {
-                try {
-                    int scope = Integer.parseInt(role.getDataScope());
-                    minScope = Math.min(minScope, scope);
-                } catch (NumberFormatException ignored) {
-                }
-            }
-        }
-        return minScope;
     }
 
     public record LoginBody(String username, String password, String code, String uuid) {

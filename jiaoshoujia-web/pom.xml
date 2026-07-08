@@ -16,7 +16,7 @@
         <module>jiaoshoujia-common</module>
         <module>jiaoshoujia-framework</module>
         <module>jiaoshoujia-system</module>
-        <module>jiaoshoujia-generator</module>
+
         <module>jiaoshoujia-admin</module>
     </modules>
 
@@ -36,7 +36,6 @@
         <sentinel.version>1.8.8</sentinel.version>
         <jasypt.version>3.0.5</jasypt.version>
         <caffeine.version>3.1.8</caffeine.version>
-        <velocity.version>2.4</velocity.version>
     </properties>
 
     <dependencyManagement>
@@ -66,12 +65,6 @@
                 <artifactId>jiaoshoujia-system</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>com.jiaoshoujia</groupId>
-                <artifactId>jiaoshoujia-generator</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
             <!-- MyBatis-Plus -->
             <dependency>
                 <groupId>com.baomidou</groupId>
@@ -161,12 +154,6 @@
                 <version>${caffeine.version}</version>
             </dependency>
 
-            <!-- Velocity (代码生成器) -->
-            <dependency>
-                <groupId>org.apache.velocity</groupId>
-                <artifactId>velocity-engine-core</artifactId>
-                <version>${velocity.version}</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 

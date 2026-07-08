@@ -240,67 +240,6 @@ CREATE TABLE sys_job (
     PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='定时任务表';
 
--- ----------------------------
--- 12. 代码生成 - 表信息
--- ----------------------------
-DROP TABLE IF EXISTS gen_table;
-CREATE TABLE gen_table (
-    id             BIGINT        NOT NULL AUTO_INCREMENT           COMMENT '编号',
-    table_name     VARCHAR(200)  NOT NULL                          COMMENT '表名称',
-    table_comment  VARCHAR(500)  DEFAULT ''                        COMMENT '表描述',
-    sub_table_name VARCHAR(200)  DEFAULT NULL                      COMMENT '关联子表名',
-    sub_table_fk   VARCHAR(200)  DEFAULT NULL                      COMMENT '子表关联外键',
-    class_name     VARCHAR(200)  NOT NULL                          COMMENT '实体类名称',
-    tpl_category   VARCHAR(200)  DEFAULT 'crud'                    COMMENT '模板类型(crud单表 tree树表 sub主子表)',
-    package_name   VARCHAR(200)  DEFAULT ''                        COMMENT '生成包路径',
-    module_name    VARCHAR(50)   DEFAULT ''                        COMMENT '生成模块名',
-    business_name  VARCHAR(50)   DEFAULT ''                        COMMENT '生成业务名',
-    function_name  VARCHAR(50)   DEFAULT ''                        COMMENT '生成功能名',
-    function_author VARCHAR(50)  DEFAULT ''                        COMMENT '生成功能作者',
-    gen_type       TINYINT       DEFAULT 0                         COMMENT '生成代码方式(0zip压缩包 1自定义路径)',
-    gen_path       VARCHAR(200)  DEFAULT '/'                       COMMENT '生成路径',
-    options        VARCHAR(1000) DEFAULT NULL                      COMMENT '其它生成选项',
-    del_flag       TINYINT       DEFAULT 0                         COMMENT '删除标志',
-    create_by      VARCHAR(50)   DEFAULT ''                        COMMENT '创建者',
-    create_time    DATETIME      DEFAULT CURRENT_TIMESTAMP         COMMENT '创建时间',
-    update_by      VARCHAR(50)   DEFAULT ''                        COMMENT '更新者',
-    update_time    DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    remark         VARCHAR(500)  DEFAULT ''                        COMMENT '备注',
-    PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='代码生成业务表';
-
--- ----------------------------
--- 13. 代码生成 - 字段信息
--- ----------------------------
-DROP TABLE IF EXISTS gen_table_column;
-CREATE TABLE gen_table_column (
-    id            BIGINT        NOT NULL AUTO_INCREMENT            COMMENT '编号',
-    table_id      BIGINT        NOT NULL                           COMMENT '归属表编号',
-    column_name   VARCHAR(200)  NOT NULL                           COMMENT '列名称',
-    column_comment VARCHAR(500) DEFAULT ''                         COMMENT '列描述',
-    column_type   VARCHAR(100)  NOT NULL                           COMMENT '列类型',
-    java_type     VARCHAR(100)  DEFAULT ''                         COMMENT 'Java类型',
-    java_field    VARCHAR(200)  DEFAULT ''                         COMMENT 'Java字段名',
-    is_pk         TINYINT       DEFAULT 0                          COMMENT '是否主键(0否 1是)',
-    is_increment  TINYINT       DEFAULT 0                          COMMENT '是否自增(0否 1是)',
-    is_required   TINYINT       DEFAULT 0                          COMMENT '是否必填(0否 1是)',
-    is_insert     TINYINT       DEFAULT 0                          COMMENT '是否为插入字段(0否 1是)',
-    is_edit       TINYINT       DEFAULT 0                          COMMENT '是否编辑字段(0否 1是)',
-    is_list       TINYINT       DEFAULT 0                          COMMENT '是否列表字段(0否 1是)',
-    is_query      TINYINT       DEFAULT 0                          COMMENT '是否查询字段(0否 1是)',
-    query_type    VARCHAR(200)  DEFAULT 'EQ'                       COMMENT '查询方式(EQ等于 NE不等于 GT大于 GTE大于等于 LT小于 LTE小于等于 LIKE模糊 BETWEEN范围)',
-    html_type     VARCHAR(200)  DEFAULT ''                         COMMENT '显示类型(input文本框 textarea文本域 select下拉框 checkbox复选框 radio单选框 datetime日期控件)',
-    dict_type     VARCHAR(200)  DEFAULT ''                         COMMENT '字典类型',
-    sort          INT           DEFAULT 0                          COMMENT '排序',
-    del_flag      TINYINT       DEFAULT 0                          COMMENT '删除标志',
-    create_by     VARCHAR(50)   DEFAULT ''                         COMMENT '创建者',
-    create_time   DATETIME      DEFAULT CURRENT_TIMESTAMP          COMMENT '创建时间',
-    update_by     VARCHAR(50)   DEFAULT ''                         COMMENT '更新者',
-    update_time   DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    PRIMARY KEY (id),
-    KEY idx_table_id (table_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='代码生成字段表';
-
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =============================================
@@ -320,7 +259,7 @@ INSERT INTO sys_dept (id, parent_id, ancestors, dept_name, order_num, leader, ph
 -- 用户数据  密码: admin123 => BCrypt
 -- ----------------------------
 INSERT INTO sys_user (id, username, nickname, password, status, dept_id, remark, create_by) VALUES
-(1, 'admin',      '系统管理员', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 0, 100, '三员之系统管理员：负责用户/部门/字典/任务/代码生成', 'admin'),
+(1, 'admin',      '系统管理员', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 0, 100, '三员之系统管理员：负责用户/部门/字典/任务', 'admin'),
 (2, 'user',       '普通用户',   '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 0, 101, '演示普通用户',                                     'admin'),
 (3, 'secadmin',   '安全管理员', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 0, 100, '三员之安全(配置)管理员：负责角色/菜单授权配置',    'admin'),
 (4, 'auditadmin', '审计管理员', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 0, 100, '三员之审计管理员：负责操作日志/登录日志审计',      'admin');
@@ -348,27 +287,22 @@ INSERT INTO sys_user_role (user_id, role_id) VALUES
 -- ----------------------------
 -- 一级目录
 INSERT INTO sys_menu (id, menu_name, parent_id, order_num, path, component, menu_type, visible, status, perms, icon, create_by) VALUES
-(1, '系统管理', 0, 1, 'system',  NULL, 'M', 0, 0, '', 'system',  'admin'),
-(2, '系统监控', 0, 2, 'monitor', NULL, 'M', 0, 0, '', 'monitor', 'admin'),
-(3, '系统工具', 0, 3, 'tool',    NULL, 'M', 0, 0, '', 'tool',    'admin');
+(1, '系统管理', 0, 1, 'system',  NULL, 'M', 0, 0, '', 'Setting',  'admin'),
+(2, '系统监控', 0, 2, 'monitor', NULL, 'M', 0, 0, '', 'Monitor', 'admin');
 
 -- 二级菜单 — 系统管理
 INSERT INTO sys_menu (id, menu_name, parent_id, order_num, path, component, menu_type, visible, status, perms, icon, create_by) VALUES
-(100, '用户管理', 1, 1, 'user', 'system/user/index', 'C', 0, 0, 'system:user:list', 'user',   'admin'),
-(101, '角色管理', 1, 2, 'role', 'system/role/index', 'C', 0, 0, 'system:role:list', 'peoples','admin'),
-(102, '菜单管理', 1, 3, 'menu', 'system/menu/index', 'C', 0, 0, 'system:menu:list', 'tree-table', 'admin'),
-(103, '部门管理', 1, 4, 'dept', 'system/dept/index', 'C', 0, 0, 'system:dept:list', 'tree',   'admin'),
-(104, '字典管理', 1, 5, 'dict', 'system/dict/index', 'C', 0, 0, 'system:dict:list', 'dict',   'admin');
+(100, '用户管理', 1, 1, 'user', 'system/user/index', 'C', 0, 0, 'system:user:list', 'User',       'admin'),
+(101, '角色管理', 1, 2, 'role', 'system/role/index', 'C', 0, 0, 'system:role:list', 'UserFilled','admin'),
+(102, '菜单管理', 1, 3, 'menu', 'system/menu/index', 'C', 0, 0, 'system:menu:list', 'Menu',      'admin'),
+(103, '部门管理', 1, 4, 'dept', 'system/dept/index', 'C', 0, 0, 'system:dept:list', 'OfficeBuilding', 'admin'),
+(104, '字典管理', 1, 5, 'dict', 'system/dict/index', 'C', 0, 0, 'system:dict:list', 'Collection','admin');
 
 -- 二级菜单 — 系统监控
 INSERT INTO sys_menu (id, menu_name, parent_id, order_num, path, component, menu_type, visible, status, perms, icon, create_by) VALUES
-(105, '操作日志', 2, 1, 'operlog',    'monitor/operlog/index',    'C', 0, 0, 'monitor:operlog:list',    'form',  'admin'),
-(106, '定时任务', 2, 3, 'job',        'monitor/job/index',        'C', 0, 0, 'monitor:job:list',        'job',   'admin'),
-(108, '登录日志', 2, 2, 'logininfor', 'monitor/logininfor/index', 'C', 0, 0, 'monitor:logininfor:list', 'logininfor', 'admin');
-
--- 二级菜单 — 系统工具
-INSERT INTO sys_menu (id, menu_name, parent_id, order_num, path, component, menu_type, visible, status, perms, icon, create_by) VALUES
-(107, '代码生成', 3, 1, 'gen', 'tool/gen/index', 'C', 0, 0, 'tool:gen:list', 'code', 'admin');
+(105, '操作日志', 2, 1, 'operlog',    'monitor/operlog/index',    'C', 0, 0, 'monitor:operlog:list',    'Document',      'admin'),
+(106, '定时任务', 2, 3, 'job',        'monitor/job/index',        'C', 0, 0, 'monitor:job:list',        'AlarmClock',    'admin'),
+(108, '登录日志', 2, 2, 'logininfor', 'monitor/logininfor/index', 'C', 0, 0, 'monitor:logininfor:list', 'Tickets',       'admin');
 
 -- 用户管理按钮
 INSERT INTO sys_menu (id, menu_name, parent_id, order_num, path, component, menu_type, visible, status, perms, icon, create_by) VALUES
@@ -433,27 +367,23 @@ INSERT INTO sys_menu (id, menu_name, parent_id, order_num, path, component, menu
 (1033, '任务状态', 106, 5, '', NULL, 'F', 0, 0, 'monitor:job:changeStatus',   '#', 'admin'),
 (1044, '任务执行', 106, 6, '', NULL, 'F', 0, 0, 'monitor:job:run',            '#', 'admin');
 
--- 代码生成按钮
-INSERT INTO sys_menu (id, menu_name, parent_id, order_num, path, component, menu_type, visible, status, perms, icon, create_by) VALUES
-(1034, '生成查询', 107, 1, '', NULL, 'F', 0, 0, 'tool:gen:query',             '#', 'admin'),
-(1035, '生成修改', 107, 2, '', NULL, 'F', 0, 0, 'tool:gen:edit',              '#', 'admin'),
-(1036, '生成删除', 107, 3, '', NULL, 'F', 0, 0, 'tool:gen:remove',            '#', 'admin'),
-(1037, '导入代码', 107, 4, '', NULL, 'F', 0, 0, 'tool:gen:import',            '#', 'admin'),
-(1038, '预览代码', 107, 5, '', NULL, 'F', 0, 0, 'tool:gen:preview',           '#', 'admin'),
-(1045, '生成代码', 107, 6, '', NULL, 'F', 0, 0, 'tool:gen:code',              '#', 'admin');
-
 -- ----------------------------
 -- 角色与菜单关联 — 三权分立职责拆分
 -- ----------------------------
--- 系统管理员(1)：用户/部门/字典 + 定时任务 + 代码生成（不含角色/菜单授权，不含日志审计）
+-- 系统管理员(1)：用户/部门/字典 + 定时任务（不含角色/菜单授权，不含日志审计）
 INSERT INTO sys_role_menu (role_id, menu_id) VALUES
-(1,1),(1,2),(1,3),
-(1,100),(1,103),(1,104),(1,106),(1,107),
+(1,1),(1,2),
+(1,100),(1,103),(1,104),(1,106),
 (1,1001),(1,1002),(1,1003),(1,1004),(1,1005),(1,1006),(1,1007),
 (1,1017),(1,1018),(1,1019),(1,1020),
 (1,1021),(1,1022),(1,1023),(1,1024),(1,1025),
-(1,1029),(1,1030),(1,1031),(1,1032),(1,1033),(1,1044),
-(1,1034),(1,1035),(1,1036),(1,1037),(1,1038),(1,1045);
+(1,1029),(1,1030),(1,1031),(1,1032),(1,1033),(1,1044);
+
+-- 普通角色(2)：只读查看用户/部门/字典
+INSERT INTO sys_role_menu (role_id, menu_id) VALUES
+(2,1),
+(2,100),(2,103),(2,104),
+(2,1001),(2,1017),(2,1021);
 
 -- 安全管理员(3)：角色管理 + 菜单管理（授权配置）
 INSERT INTO sys_role_menu (role_id, menu_id) VALUES

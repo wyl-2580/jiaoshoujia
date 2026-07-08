@@ -1,6 +1,7 @@
 import axios, { type AxiosRequestConfig, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getToken, removeToken, removeRefreshToken } from '@/utils/auth'
+import { getToken, setToken, removeToken, getRefreshToken, setRefreshToken, removeRefreshToken } from '@/utils/auth'
+import { refreshToken as refreshTokenApi } from '@/api/system/auth'
 import router from '@/router'
 
 export interface ApiResponse<T = any> {
@@ -26,9 +27,22 @@ service.interceptors.request.use(
 )
 
 let isRelogin = false
+let isRefreshing = false
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (error: any) => void }> = []
+
+function processQueue(error: any, token: string | null = null) {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error)
+    } else {
+      prom.resolve(token!)
+    }
+  })
+  failedQueue = []
+}
 
 service.interceptors.response.use(
-  (response: AxiosResponse<ApiResponse>) => {
+  async (response: AxiosResponse<ApiResponse>) => {
     if (response.config.responseType === 'blob') {
       return response as any
     }
@@ -40,23 +54,66 @@ service.interceptors.response.use(
       return res as any
     }
     if (res.code === 401) {
-      if (!isRelogin) {
-        isRelogin = true
-        ElMessageBox.confirm('登录状态已过期，请重新登录', '系统提示', {
-          confirmButtonText: '重新登录',
-          cancelButtonText: '取消',
-          type: 'warning',
-        })
-          .then(() => {
-            removeToken()
-            removeRefreshToken()
-            router.push('/login')
+      const rt = getRefreshToken()
+      if (!rt) {
+        if (!isRelogin) {
+          isRelogin = true
+          ElMessageBox.confirm('登录状态已过期，请重新登录', '系统提示', {
+            confirmButtonText: '重新登录',
+            cancelButtonText: '取消',
+            type: 'warning',
           })
-          .finally(() => {
-            isRelogin = false
-          })
+            .then(() => {
+              removeToken()
+              removeRefreshToken()
+              router.push('/login')
+            })
+            .finally(() => {
+              isRelogin = false
+            })
+        }
+        return Promise.reject(new Error(res.msg || '登录已过期'))
       }
-      return Promise.reject(new Error(res.msg || '登录已过期'))
+      if (isRefreshing) {
+        return new Promise<string>((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        }).then((token) => {
+          response.config.headers.Authorization = `Bearer ${token}`
+          return service(response.config)
+        })
+      }
+      isRefreshing = true
+      try {
+        const refreshRes = await refreshTokenApi(rt)
+        const newToken = refreshRes.data.access_token
+        const newRefreshToken = refreshRes.data.refresh_token
+        setToken(newToken)
+        if (newRefreshToken) setRefreshToken(newRefreshToken)
+        processQueue(null, newToken)
+        response.config.headers.Authorization = `Bearer ${newToken}`
+        return service(response.config)
+      } catch (refreshError) {
+        processQueue(refreshError, null)
+        removeToken()
+        removeRefreshToken()
+        if (!isRelogin) {
+          isRelogin = true
+          ElMessageBox.confirm('登录状态已过期，请重新登录', '系统提示', {
+            confirmButtonText: '重新登录',
+            cancelButtonText: '取消',
+            type: 'warning',
+          })
+            .then(() => {
+              router.push('/login')
+            })
+            .finally(() => {
+              isRelogin = false
+            })
+        }
+        return Promise.reject(new Error('登录已过期'))
+      } finally {
+        isRefreshing = false
+      }
     }
     ElMessage.error(res.msg || '请求失败')
     return Promise.reject(new Error(res.msg || '请求失败'))
@@ -125,8 +182,10 @@ export async function download(url: string, params?: Record<string, any>, fileNa
   let name = fileName || ''
   if (!name) {
     const disposition = response.headers['content-disposition'] as string | undefined
-    const match = disposition && /filename=([^;]+)/i.exec(disposition)
-    name = match ? decodeURIComponent(match[1].replace(/%20/g, ' ').trim()) : `export_${Date.now()}.xlsx`
+    const starMatch = disposition && /filename\*=UTF-8''([^;]+)/i.exec(disposition)
+    const plainMatch = disposition && /filename=([^;]+)/i.exec(disposition)
+    const match = starMatch || plainMatch
+    name = match ? decodeURIComponent(match[1].trim()) : `export_${Date.now()}.xlsx`
   }
   const link = document.createElement('a')
   link.href = window.URL.createObjectURL(blob)

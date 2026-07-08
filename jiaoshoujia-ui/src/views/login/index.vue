@@ -42,7 +42,7 @@
           </el-input>
         </el-form-item>
         <el-form-item>
-          <el-checkbox v-model="loginForm.rememberMe">记住密码</el-checkbox>
+          <el-checkbox v-model="loginForm.rememberMe">记住用户名</el-checkbox>
         </el-form-item>
         <el-form-item>
           <el-button
@@ -93,11 +93,9 @@ const loginRules: FormRules = {
 
 function getCookieData() {
   const username = Cookies.get('username')
-  const password = Cookies.get('password')
   const rememberMe = Cookies.get('rememberMe')
-  if (rememberMe === 'true' && username && password) {
+  if (rememberMe === 'true' && username) {
     loginForm.username = username
-    loginForm.password = decodeURIComponent(password)
     loginForm.rememberMe = true
   }
 }
@@ -110,18 +108,16 @@ function handleLogin() {
     try {
       if (loginForm.rememberMe) {
         Cookies.set('username', loginForm.username, { expires: 30 })
-        Cookies.set('password', encodeURIComponent(loginForm.password), { expires: 30 })
         Cookies.set('rememberMe', 'true', { expires: 30 })
       } else {
         Cookies.remove('username')
-        Cookies.remove('password')
         Cookies.remove('rememberMe')
       }
       await userStore.login({
         username: loginForm.username,
         password: loginForm.password
       })
-      const redirect = (route.query.redirect as string) || '/'
+      const redirect = decodeURIComponent((route.query.redirect as string) || '/')
       router.push(redirect)
       ElMessage.success('登录成功')
     } catch {

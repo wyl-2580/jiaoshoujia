@@ -25,7 +25,9 @@ public final class ExcelUtils {
             response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             response.setCharacterEncoding("utf-8");
             String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
-            response.setHeader("Content-Disposition", "attachment;filename=" + encodedFileName + ".xlsx");
+            response.setHeader("Content-Disposition",
+                    "attachment;filename=" + encodedFileName + ".xlsx" +
+                    ";filename*=UTF-8''" + encodedFileName + ".xlsx");
             EasyExcel.write(response.getOutputStream(), clazz).sheet(sheetName).doWrite(data);
         } catch (IOException e) {
             log.error("Excel export failed", e);

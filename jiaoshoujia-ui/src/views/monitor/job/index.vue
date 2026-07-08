@@ -1,7 +1,7 @@
 <template>
   <div class="app-container">
     <!-- Search -->
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch">
+    <el-form :model="queryParams" ref="queryRef" :inline="true">
       <el-form-item label="任务名称" prop="jobName">
         <el-input v-model="queryParams.jobName" placeholder="请输入任务名称" clearable @keyup.enter="handleQuery" />
       </el-form-item>
@@ -13,8 +13,8 @@
       </el-form-item>
       <el-form-item label="任务状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="请选择" clearable>
-          <el-option label="正常" :value="0" />
-          <el-option label="暂停" :value="1" />
+          <el-option label="正常" value="0" />
+          <el-option label="暂停" value="1" />
         </el-select>
       </el-form-item>
       <el-form-item>
@@ -31,13 +31,12 @@
       <el-col :span="1.5">
         <el-button type="danger" plain :icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['monitor:job:remove']">删除</el-button>
       </el-col>
-      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
     </el-row>
 
     <!-- Table -->
     <el-table v-loading="loading" :data="jobList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="任务编号" align="center" prop="id" width="80" />
+      <el-table-column label="序号" type="index" width="60" align="center" :index="(index: number) => (queryParams.pageNum - 1) * queryParams.pageSize + index + 1" />
       <el-table-column label="任务名称" align="center" prop="jobName" :show-overflow-tooltip="true" />
       <el-table-column label="任务组名" align="center" prop="jobGroup" />
       <el-table-column label="调用目标" align="center" prop="invokeTarget" :show-overflow-tooltip="true" />
@@ -115,7 +114,6 @@ import { Search, Refresh, Plus, Edit, Delete, CaretRight } from '@element-plus/i
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const loading = ref(false)
-const showSearch = ref(true)
 const multiple = ref(true)
 const total = ref(0)
 const jobList = ref<any[]>([])

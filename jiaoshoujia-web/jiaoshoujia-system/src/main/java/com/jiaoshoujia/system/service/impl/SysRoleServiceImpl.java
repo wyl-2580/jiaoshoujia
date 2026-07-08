@@ -105,6 +105,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Transactional(rollbackFor = Exception.class)
     @Override
     public int insertRole(SysRole role) {
+        checkDataScope(role);
         checkMenuIdsInScope(role.getMenuIds());
         if (!save(role)) {
             return 0;
@@ -117,6 +118,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Transactional(rollbackFor = Exception.class)
     @Override
     public int updateRole(SysRole role) {
+        checkDataScope(role);
         checkNotOwnRole(role.getId(), "role.self.not.allow.edit");
         checkMenuIdsInScope(role.getMenuIds());
         if (!updateById(role)) {
@@ -171,6 +173,26 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             rd.setRoleId(roleId);
             rd.setDeptId(deptId);
             roleDeptMapper.insert(rd);
+        }
+    }
+
+    /**
+     * 校验 dataScope 取值合法性。非管理员不允许设置"全部数据权限"。
+     */
+    private void checkDataScope(SysRole role) {
+        if (role.getDataScope() != null) {
+            try {
+                int scope = Integer.parseInt(role.getDataScope());
+                if (scope < 1 || scope > 5) {
+                    throw new BusinessException("数据权限范围值不合法");
+                }
+                Long userId = SecurityUtils.getUserId();
+                if (scope == 1 && !SecurityUtils.isAdmin(userId)) {
+                    throw new BusinessException("非管理员不允许设置全部数据权限");
+                }
+            } catch (NumberFormatException e) {
+                throw new BusinessException("数据权限范围值不合法");
+            }
         }
     }
 

@@ -1,5 +1,6 @@
 package com.jiaoshoujia.system.service.impl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -17,6 +18,8 @@ import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 public class SysJobServiceImpl extends ServiceImpl<SysJobMapper, SysJob> implements ISysJobService {
@@ -56,7 +59,14 @@ public class SysJobServiceImpl extends ServiceImpl<SysJobMapper, SysJob> impleme
     public int insertJob(SysJob job) {
         job.setStatus(1);
         save(job);
-        ScheduleUtils.createScheduleJob(scheduler, job);
+        final Long jobId = job.getId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                SysJob savedJob = getById(jobId);
+                ScheduleUtils.createScheduleJob(scheduler, savedJob);
+            }
+        });
         return 1;
     }
 
@@ -68,22 +78,38 @@ public class SysJobServiceImpl extends ServiceImpl<SysJobMapper, SysJob> impleme
             throw new BusinessException("任务不存在");
         }
         updateById(job);
-        SysJob updated = getById(job.getId());
-        ScheduleUtils.deleteScheduleJob(scheduler, updated.getId(), existing.getJobGroup());
-        ScheduleUtils.createScheduleJob(scheduler, updated);
+        final Long jobId = job.getId();
+        final String oldJobGroup = existing.getJobGroup();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                SysJob updated = getById(jobId);
+                ScheduleUtils.deleteScheduleJob(scheduler, updated.getId(), oldJobGroup);
+                ScheduleUtils.createScheduleJob(scheduler, updated);
+            }
+        });
         return 1;
     }
 
     @Transactional(rollbackFor = Exception.class)
     @Override
     public int deleteJobByIds(Long[] jobIds) {
+        List<SysJob> jobsToDelete = new ArrayList<>();
         for (Long jobId : jobIds) {
             SysJob job = getById(jobId);
             if (job != null) {
-                ScheduleUtils.deleteScheduleJob(scheduler, job.getId(), job.getJobGroup());
+                jobsToDelete.add(job);
             }
         }
         removeBatchByIds(Arrays.asList(jobIds));
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                for (SysJob job : jobsToDelete) {
+                    ScheduleUtils.deleteScheduleJob(scheduler, job.getId(), job.getJobGroup());
+                }
+            }
+        });
         return 1;
     }
 
@@ -99,12 +125,19 @@ public class SysJobServiceImpl extends ServiceImpl<SysJobMapper, SysJob> impleme
         if (!updated) {
             return 0;
         }
-        Integer newStatus = job.getStatus();
-        if (newStatus != null && newStatus == 0) {
-            ScheduleUtils.resumeJob(scheduler, existing.getId(), existing.getJobGroup());
-        } else {
-            ScheduleUtils.pauseJob(scheduler, existing.getId(), existing.getJobGroup());
-        }
+        final Integer newStatus = job.getStatus();
+        final Long existingId = existing.getId();
+        final String existingGroup = existing.getJobGroup();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                if (newStatus != null && newStatus == 0) {
+                    ScheduleUtils.resumeJob(scheduler, existingId, existingGroup);
+                } else {
+                    ScheduleUtils.pauseJob(scheduler, existingId, existingGroup);
+                }
+            }
+        });
         return 1;
     }
 

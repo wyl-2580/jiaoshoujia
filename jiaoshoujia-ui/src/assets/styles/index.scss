@@ -102,6 +102,12 @@ a {
   justify-content: flex-end;
 }
 
+// Inline form select width fix
+.search-form .el-select,
+.el-form--inline .el-select {
+  width: 200px;
+}
+
 // Dialog
 .el-dialog__header {
   border-bottom: 1px solid $border-color;

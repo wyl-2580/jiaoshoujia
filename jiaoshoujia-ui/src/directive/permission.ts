@@ -7,12 +7,13 @@ function checkPermission(el: HTMLElement, binding: DirectiveBinding<string[]>) {
   if (value && value instanceof Array && value.length > 0) {
     const userStore = useUserStore()
     const permissions = userStore.permissions
-    const allPermission = '*:*:*'
     const hasPermission = permissions.some((perm) => {
-      return allPermission === perm || value.includes(perm)
+      return value.includes(perm)
     })
     if (!hasPermission) {
-      el.parentNode?.removeChild(el)
+      el.style.display = 'none'
+    } else {
+      el.style.display = ''
     }
   } else {
     throw new Error('v-hasPermi requires a non-empty array value, e.g. v-hasPermi="[\'system:user:add\']"')

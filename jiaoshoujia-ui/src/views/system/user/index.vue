@@ -80,7 +80,7 @@
         <!-- Table -->
         <el-table v-loading="loading" :data="userList" @selection-change="handleSelectionChange" class="data-table">
           <el-table-column type="selection" width="50" align="center" />
-          <el-table-column label="用户编号" prop="id" width="90" align="center" />
+          <el-table-column label="序号" type="index" width="60" align="center" :index="(index: number) => (queryParams.pageNum - 1) * queryParams.pageSize + index + 1" />
           <el-table-column label="用户名称" prop="username" show-overflow-tooltip />
           <el-table-column label="用户昵称" prop="nickname" show-overflow-tooltip />
           <el-table-column label="部门" prop="deptName" show-overflow-tooltip />
@@ -114,7 +114,7 @@
                 <el-button link type="primary" :icon="DArrowRight">更多</el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="resetPwd" :icon="Key">重置密码</el-dropdown-item>
+                    <el-dropdown-item command="resetPwd" :icon="Key" v-hasPermi="['system:user:resetPwd']">重置密码</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>

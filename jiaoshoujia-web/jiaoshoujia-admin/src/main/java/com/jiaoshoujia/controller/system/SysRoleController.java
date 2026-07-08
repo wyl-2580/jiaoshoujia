@@ -9,6 +9,7 @@ import com.jiaoshoujia.common.utils.ExcelUtils;
 import com.jiaoshoujia.system.domain.SysRole;
 import com.jiaoshoujia.system.service.ISysRoleService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -55,14 +56,14 @@ public class SysRoleController {
     @PreAuthorize("hasAuthority('system:role:add')")
     @Log(title = "角色管理", businessType = BusinessType.INSERT)
     @PostMapping
-    public R<Void> add(@RequestBody SysRole role) {
+    public R<Void> add(@Valid @RequestBody SysRole role) {
         return roleService.insertRole(role) > 0 ? R.ok() : R.fail();
     }
 
     @PreAuthorize("hasAuthority('system:role:edit')")
     @Log(title = "角色管理", businessType = BusinessType.UPDATE)
     @PutMapping
-    public R<Void> edit(@RequestBody SysRole role) {
+    public R<Void> edit(@Valid @RequestBody SysRole role) {
         return roleService.updateRole(role) > 0 ? R.ok() : R.fail();
     }
 

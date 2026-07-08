@@ -8,7 +8,6 @@ import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.Select;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
@@ -29,21 +28,19 @@ public class DataScopeInnerInterceptor implements InnerInterceptor {
         String originalSql = boundSql.getSql();
         try {
             Statement statement = CCJSqlParserUtil.parse(originalSql);
-            if (statement instanceof Select select) {
-                if (select.getSelectBody() instanceof PlainSelect plainSelect) {
-                    Expression where = plainSelect.getWhere();
-                    Expression scopeExpression = CCJSqlParserUtil.parseCondExpression(dataScope);
-                    if (where == null) {
-                        plainSelect.setWhere(scopeExpression);
-                    } else {
-                        plainSelect.setWhere(new AndExpression(where, scopeExpression));
-                    }
-                    PluginUtils.mpBoundSql(boundSql).sql(select.toString());
+            if (statement instanceof PlainSelect plainSelect) {
+                Expression where = plainSelect.getWhere();
+                Expression scopeExpression = CCJSqlParserUtil.parseCondExpression(dataScope);
+                if (where == null) {
+                    plainSelect.setWhere(scopeExpression);
+                } else {
+                    plainSelect.setWhere(new AndExpression(where, scopeExpression));
                 }
+                PluginUtils.mpBoundSql(boundSql).sql(plainSelect.toString());
             }
         } catch (Exception e) {
-            String newSql = "SELECT * FROM (" + originalSql + ") _t WHERE " + dataScope;
-            PluginUtils.mpBoundSql(boundSql).sql(newSql);
+            org.slf4j.LoggerFactory.getLogger(DataScopeInnerInterceptor.class)
+                    .warn("数据权限SQL解析失败，跳过过滤: {}", originalSql, e);
         }
     }
 }

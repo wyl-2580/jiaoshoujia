@@ -8,6 +8,12 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * 基于 Caffeine 的本地内存缓存实现。
+ * <p>
+ * <strong>注意：</strong>本实现基于本地内存缓存（Caffeine），仅适用于单实例部署。
+ * 多实例（集群）部署时应替换为 Redis 等分布式缓存实现，否则登录态、限流计数、验证码等状态将无法跨实例共享。
+ */
 @Service
 @ConditionalOnProperty(name = "app.cache.type", havingValue = "caffeine", matchIfMissing = true)
 public class CaffeineCacheService implements CacheService {
@@ -77,6 +83,16 @@ public class CaffeineCacheService implements CacheService {
         cache.invalidate(key);
         counters.invalidate(key);
         return true;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> T getAndDelete(String key) {
+        CacheEntry entry = cache.asMap().remove(key);
+        if (entry == null || entry.isExpired()) {
+            return null;
+        }
+        return (T) entry.value();
     }
 
     @Override

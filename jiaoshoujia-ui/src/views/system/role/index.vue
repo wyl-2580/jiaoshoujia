@@ -10,8 +10,8 @@
       </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="角色状态" clearable>
-          <el-option label="正常" :value="0" />
-          <el-option label="停用" :value="1" />
+          <el-option label="正常" value="0" />
+          <el-option label="停用" value="1" />
         </el-select>
       </el-form-item>
       <el-form-item label="创建时间" prop="dateRange">
@@ -49,7 +49,7 @@
     <!-- Table -->
     <el-table v-loading="loading" :data="roleList" @selection-change="handleSelectionChange" class="data-table">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="角色编号" prop="id" width="100" align="center" />
+      <el-table-column label="序号" type="index" width="60" align="center" :index="(index: number) => (queryParams.pageNum - 1) * queryParams.pageSize + index + 1" />
       <el-table-column label="角色名称" prop="roleName" show-overflow-tooltip />
       <el-table-column label="权限字符" prop="roleKey" show-overflow-tooltip />
       <el-table-column label="显示顺序" prop="roleSort" width="100" align="center" />

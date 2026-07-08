@@ -6,6 +6,7 @@ import com.jiaoshoujia.common.enums.BusinessType;
 import com.jiaoshoujia.common.utils.SecurityUtils;
 import com.jiaoshoujia.system.domain.SysMenu;
 import com.jiaoshoujia.system.service.ISysMenuService;
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,24 +35,30 @@ public class SysMenuController {
         return R.ok(menuService.selectMenuById(menuId));
     }
 
+    @PreAuthorize("hasAnyAuthority('system:menu:list', 'system:role:edit')")
     @GetMapping("/treeselect")
     public R<List<SysMenu>> treeselect(SysMenu menu) {
         Long userId = SecurityUtils.getUserId();
-        List<SysMenu> menus = menuService.selectMenuList(menu, userId);
+        List<SysMenu> menus;
+        if (SecurityUtils.isAdmin(userId)) {
+            menus = menuService.selectMenuListAll(menu);
+        } else {
+            menus = menuService.selectMenuList(menu, userId);
+        }
         return R.ok(menuService.buildMenuTree(menus));
     }
 
     @PreAuthorize("hasAuthority('system:menu:add')")
     @Log(title = "菜单管理", businessType = BusinessType.INSERT)
     @PostMapping
-    public R<Void> add(@RequestBody SysMenu menu) {
+    public R<Void> add(@Valid @RequestBody SysMenu menu) {
         return menuService.insertMenu(menu) > 0 ? R.ok() : R.fail();
     }
 
     @PreAuthorize("hasAuthority('system:menu:edit')")
     @Log(title = "菜单管理", businessType = BusinessType.UPDATE)
     @PutMapping
-    public R<Void> edit(@RequestBody SysMenu menu) {
+    public R<Void> edit(@Valid @RequestBody SysMenu menu) {
         return menuService.updateMenu(menu) > 0 ? R.ok() : R.fail();
     }
 

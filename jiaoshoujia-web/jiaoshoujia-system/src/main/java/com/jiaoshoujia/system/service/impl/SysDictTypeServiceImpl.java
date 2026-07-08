@@ -30,7 +30,7 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
                 .eq(dictType.getStatus() != null, SysDictType::getStatus, dictType.getStatus())
                 .ge(StringUtils.isNotEmpty(dictType.getBeginTime()), SysDictType::getCreateTime, dictType.getBeginTime())
                 .le(StringUtils.isNotEmpty(dictType.getEndTime()), SysDictType::getCreateTime, endOfDay(dictType.getEndTime()))
-                .orderByDesc(SysDictType::getCreateTime);
+                .orderByAsc(SysDictType::getId);
         return baseMapper.selectPage(page, wrapper);
     }
 

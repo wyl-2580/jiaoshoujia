@@ -29,6 +29,19 @@ export const constantRoutes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/user',
+    component: Layout,
+    meta: { hidden: true },
+    children: [
+      {
+        path: 'profile',
+        component: () => import('@/views/user/profile/index.vue'),
+        name: 'Profile',
+        meta: { title: '个人中心' },
+      },
+    ],
+  },
+  {
     path: '/redirect',
     component: Layout,
     meta: { hidden: true },
@@ -36,6 +49,19 @@ export const constantRoutes: RouteRecordRaw[] = [
       {
         path: '/redirect/:path(.*)',
         component: () => import('@/views/redirect/index.vue'),
+      },
+    ],
+  },
+  {
+    path: '/system/dict-data',
+    component: Layout,
+    meta: { hidden: true },
+    children: [
+      {
+        path: ':dictType',
+        component: () => import('@/views/system/dict/data.vue'),
+        name: 'DictData',
+        meta: { title: '字典数据', activeMenu: '/system/dict' },
       },
     ],
   },
@@ -79,7 +105,7 @@ router.beforeEach(async (to, _from, next) => {
         next({ ...to, replace: true })
       } catch (error) {
         userStore.resetState()
-        next(`/login?redirect=${to.path}`)
+        next(`/login?redirect=${encodeURIComponent(to.fullPath)}`)
         NProgress.done()
       }
     } else {
@@ -89,7 +115,7 @@ router.beforeEach(async (to, _from, next) => {
     if (whiteList.includes(to.path)) {
       next()
     } else {
-      next(`/login?redirect=${to.path}`)
+      next(`/login?redirect=${encodeURIComponent(to.fullPath)}`)
       NProgress.done()
     }
   }

@@ -24,12 +24,14 @@ public class SysLoginInforController {
         this.loginInforService = loginInforService;
     }
 
+    private static final int MAX_PAGE_SIZE = 100;
+
     @PreAuthorize("hasAuthority('monitor:logininfor:list')")
     @GetMapping("/list")
     public R<PageResult<SysLoginInfor>> list(SysLoginInfor loginInfor,
                                              @RequestParam(name = "pageNum", defaultValue = "1") Integer pageNum,
                                              @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
-        Page<SysLoginInfor> page = new Page<>(pageNum, pageSize);
+        Page<SysLoginInfor> page = new Page<>(pageNum, Math.min(pageSize, MAX_PAGE_SIZE));
         Page<SysLoginInfor> result = loginInforService.selectLoginInforPage(page, loginInfor);
         return R.ok(PageResult.of(result.getTotal(), result.getRecords()));
     }

@@ -55,6 +55,21 @@ public class RedisCacheService implements CacheService {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
+    public <T> T getAndDelete(String key) {
+        String json = redisTemplate.opsForValue().getAndDelete(key);
+        if (json == null) {
+            return null;
+        }
+        try {
+            return (T) objectMapper.readValue(json, Object.class);
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to deserialize cache value for key [{}]: {}", key, e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
     public boolean hasKey(String key) {
         return Boolean.TRUE.equals(redisTemplate.hasKey(key));
     }

@@ -69,9 +69,6 @@ public class DataScopeAspect {
         if (SecurityUtils.isAdmin(loginUser.getUserId())) {
             return DATA_SCOPE_ALL;
         }
-        if (loginUser.getPermissions() != null && loginUser.getPermissions().contains("*:*:*")) {
-            return DATA_SCOPE_ALL;
-        }
         return loginUser.getDataScope();
     }
 

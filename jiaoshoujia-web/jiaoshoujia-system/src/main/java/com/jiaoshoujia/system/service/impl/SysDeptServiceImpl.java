@@ -11,12 +11,20 @@ import com.jiaoshoujia.common.exception.BusinessException;
 import com.jiaoshoujia.common.utils.MessageUtils;
 import com.jiaoshoujia.common.utils.StringUtils;
 import com.jiaoshoujia.system.domain.SysDept;
+import com.jiaoshoujia.system.domain.SysUser;
 import com.jiaoshoujia.system.mapper.SysDeptMapper;
+import com.jiaoshoujia.system.mapper.SysUserMapper;
 import com.jiaoshoujia.system.service.ISysDeptService;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> implements ISysDeptService {
+
+    private final SysUserMapper userMapper;
+
+    public SysDeptServiceImpl(SysUserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
 
     @Override
     public List<SysDept> selectDeptList(SysDept dept) {
@@ -64,6 +72,17 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impl
     @Override
     public int updateDept(SysDept dept) {
         SysDept oldDept = getById(dept.getId());
+        if (dept.getParentId() != null && dept.getParentId().equals(dept.getId())) {
+            throw new BusinessException("上级部门不能是自己或下级部门");
+        }
+        if (dept.getParentId() != null && dept.getParentId() != 0L) {
+            SysDept parent = getById(dept.getParentId());
+            if (parent != null && parent.getAncestors() != null) {
+                if (java.util.Arrays.asList(parent.getAncestors().split(",")).contains(String.valueOf(dept.getId()))) {
+                    throw new BusinessException("上级部门不能是自己或下级部门");
+                }
+            }
+        }
         String newAncestors;
         if (dept.getParentId() != null && dept.getParentId() != 0L) {
             SysDept parent = getById(dept.getParentId());
@@ -102,7 +121,15 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impl
         if (hasChildByDeptId(deptId)) {
             throw new BusinessException(MessageUtils.message("dept.has.children"));
         }
+        if (hasUserByDeptId(deptId)) {
+            throw new BusinessException("部门下存在用户，不允许删除");
+        }
         return removeById(deptId) ? 1 : 0;
+    }
+
+    private boolean hasUserByDeptId(Long deptId) {
+        return userMapper.selectCount(
+                new LambdaQueryWrapper<SysUser>().eq(SysUser::getDeptId, deptId)) > 0;
     }
 
     @Override

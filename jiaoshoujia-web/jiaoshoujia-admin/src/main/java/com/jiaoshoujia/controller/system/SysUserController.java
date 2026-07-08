@@ -11,6 +11,7 @@ import com.jiaoshoujia.system.domain.SysUser;
 import com.jiaoshoujia.system.domain.dto.SysUserQuery;
 import com.jiaoshoujia.system.service.ISysUserService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -60,7 +61,7 @@ public class SysUserController {
     @PreAuthorize("hasAuthority('system:user:add')")
     @Log(title = "用户管理", businessType = BusinessType.INSERT)
     @PostMapping
-    public R<Void> add(@RequestBody SysUser user) {
+    public R<Void> add(@Valid @RequestBody SysUser user) {
         userService.checkPasswordStrength(user.getPassword());
         user.setPassword(SecurityUtils.encryptPassword(user.getPassword()));
         return userService.insertUser(user) > 0 ? R.ok() : R.fail();
@@ -69,7 +70,7 @@ public class SysUserController {
     @PreAuthorize("hasAuthority('system:user:edit')")
     @Log(title = "用户管理", businessType = BusinessType.UPDATE)
     @PutMapping
-    public R<Void> edit(@RequestBody SysUser user) {
+    public R<Void> edit(@Valid @RequestBody SysUser user) {
         return userService.updateUser(user) > 0 ? R.ok() : R.fail();
     }
 
@@ -83,7 +84,7 @@ public class SysUserController {
     @PreAuthorize("hasAuthority('system:user:resetPwd')")
     @Log(title = "用户管理", businessType = BusinessType.UPDATE)
     @PutMapping("/resetPwd")
-    public R<Void> resetPwd(@RequestBody SysUser user) {
+    public R<Void> resetPwd(@Valid @RequestBody SysUser user) {
         userService.checkPasswordStrength(user.getPassword());
         user.setPassword(SecurityUtils.encryptPassword(user.getPassword()));
         return userService.resetPwd(user) > 0 ? R.ok() : R.fail();
