@@ -1,50 +1,50 @@
 # 脚手架管理系统
 
-基于 Spring Boot 3 + Vue 3 的通用单体项目脚手架，开箱即用，安全可靠。
+基于 Spring Boot 3 + Vue 3 的后台管理脚手架，内置**等保三权分立**（系统管理员 / 安全管理员 / 审计管理员），开箱即用，安全可靠。
 
 ## 技术栈
 
 ### 后端
 
-| 技术 | 说明 |
-|---|---|
-| Spring Boot 3.3.x | 基础框架 |
-| Spring Security 6.x + RSA-JWT | 认证鉴权 (RS256 非对称签名) |
-| MyBatis-Plus 3.5.x | ORM 框架 |
-| Knife4j 4.x | API 文档 (OpenAPI 3) |
-| Caffeine / Redis | 缓存 (默认 Caffeine，可选 Redis) |
-| Sentinel 1.8.x | 接口限流 |
-| EasyExcel 4.x | Excel 导入导出 |
-| Quartz | 定时任务 |
-| Hutool + MapStruct | 工具库 |
+| 技术 | 版本 | 说明 |
+|---|---|---|
+| Spring Boot | 3.3.6 | 基础框架 |
+| Spring Security | 6.x | 认证鉴权 |
+| RSA-JWT (RS256) | JJWT 0.12.6 | 非对称签名，双 Token（access + refresh） |
+| MyBatis-Plus | 3.5.9 | ORM 框架 |
+| Knife4j | 4.5.0 | API 文档 (OpenAPI 3) |
+| Caffeine / Redis | 3.1.8 | 缓存（默认 Caffeine，可选 Redis） |
+| Sentinel | 1.8.8 | 接口限流 |
+| EasyExcel | 4.0.3 | Excel 导入导出 |
+| Quartz | — | 定时任务 |
+| Hutool | 5.8.32 | 工具库 |
+| MapStruct | 1.6.3 | 对象映射 |
 
 ### 前端
 
-| 技术 | 说明 |
-|---|---|
-| Vue 3.5+ | 核心框架 (Composition API) |
-| TypeScript | 开发语言 |
-| Vite 6.x | 构建工具 |
-| Element Plus | UI 组件库 |
-| Pinia | 状态管理 |
-| Vue Router 4 | 路由 |
-| Axios | HTTP 客户端 |
-| vue-i18n | 国际化 |
+| 技术 | 版本 | 说明 |
+|---|---|---|
+| Vue | 3.5+ | 核心框架 (Composition API) |
+| TypeScript | 5.6 | 开发语言 |
+| Vite | 6.x | 构建工具 |
+| Element Plus | 2.9+ | UI 组件库 |
+| Pinia | 2.3+ | 状态管理 |
+| Vue Router | 4.5+ | 路由（动态路由 + 路由守卫） |
+| Axios | 1.7+ | HTTP 客户端（自动刷新 Token） |
+| vue-i18n | — | 国际化 |
 
 ## 项目结构
 
 ```
 jiaoshoujia/
-├── jiaoshoujia-web/              # 后端 (多模块 Maven)
-│   ├── jiaoshoujia-common/       #   公共基础 (工具类、常量、异常、注解)
-│   ├── jiaoshoujia-framework/    #   框架核心 (Security、缓存、限流、AOP)
-│   ├── jiaoshoujia-system/       #   系统管理 (用户、角色、菜单、部门、字典等)
-│   ├── jiaoshoujia-generator/    #   代码生成器
-│   └── jiaoshoujia-admin/        #   启动入口 (Controller + 配置文件)
-├── jiaoshoujia-ui/               # 前端 (Vue 3)
+├── jiaoshoujia-web/              # 后端（多模块 Maven，Java 17）
+│   ├── jiaoshoujia-common/       #   公共基础（工具类、常量、异常、注解）
+│   ├── jiaoshoujia-framework/    #   框架核心（Security、缓存、限流、AOP）
+│   ├── jiaoshoujia-system/       #   系统管理（用户、角色、菜单、部门、字典、日志、任务）
+│   └── jiaoshoujia-admin/        #   启动入口（Controller + 配置文件）
+├── jiaoshoujia-ui/               # 前端（Vue 3 + Element Plus）
 ├── sql/                          # 数据库脚本
-│   ├── mysql/init.sql
-│   └── postgresql/init.sql
+│   └── mysql/init.sql
 └── README.md
 ```
 
@@ -69,38 +69,50 @@ jiaoshoujia/
 
 | 目录 | 内容 |
 |---|---|
-| `security/` | Spring Security 配置、JWT 过滤器、RSA 密钥加载、`LoginUser` 认证主体 |
-| `cache/` | 缓存抽象：`CacheService` 接口 + `CaffeineCacheService` / `RedisCacheService` 双实现 |
-| `aspectj/` | AOP 切面：`LogAspect`（操作日志）、`DataScopeAspect`+`DataScopeInnerInterceptor`（数据权限 SQL 拦截）、`RateLimiterAspect`（限流） |
-| `web/` | Web 组件：`GlobalExceptionHandler`（全局异常处理）、`SecurityHeaderFilter`（安全响应头） |
+| `security/` | Spring Security 配置、JWT 过滤器（`JwtAuthenticationFilter`）、RSA 密钥加载、`LoginUser` 认证主体、认证入口点 |
+| `cache/` | 缓存抽象：`CacheService` 接口 + `CaffeineCacheService` / `RedisCacheService` 双实现，通过配置一键切换 |
+| `aspectj/` | AOP 切面：`LogAspect`（操作日志自动记录）、`DataScopeAspect` + `DataScopeInnerInterceptor`（数据权限 SQL 拦截）、`RateLimiterAspect`（限流） |
+| `web/` | Web 组件：`GlobalExceptionHandler`（全局异常处理）、`SecurityHeaderFilter`（安全响应头：X-Frame-Options、CSP 等） |
 | `xss/` | XSS 防护：请求参数自动过滤 |
-| `config/` | 配置类：`MybatisPlusConfig`、`CorsConfig`、`Knife4jConfig`、`SentinelConfig`、`QuartzConfig`、`I18nConfig`（国际化） |
+| `config/` | 配置类：`MybatisPlusConfig`（分页+数据权限插件）、`CorsConfig`、`Knife4jConfig`、`SentinelConfig`、`QuartzConfig`、`I18nConfig` |
 
 ### jiaoshoujia-system（系统管理模块）
 
 核心业务代码，包含完整的后台管理功能。
 
-| 功能 | 关键类 |
-|---|---|
-| 用户管理 | `SysUser` / `ISysUserService` — 增删改查、角色分配、密码重置 |
-| 角色管理 | `SysRole` / `ISysRoleService` — 增删改查、菜单权限分配 |
-| 菜单管理 | `SysMenu` / `ISysMenuService` — 树形菜单、按钮权限 |
-| 部门管理 | `SysDept` / `ISysDeptService` — 组织架构树 |
-| 字典管理 | `SysDictType` / `SysDictData` — 下拉选项维护 |
-| 操作日志 | `SysOperLog` + `OperLogEventListener` — 异步落库，支持导出 |
-| 定时任务 | `SysJob` — Quartz 可视化管理 |
-
-### jiaoshoujia-generator（代码生成模块）
-
-读取数据库表结构，使用 Velocity 模板引擎生成前后端 CRUD 代码。
-
-生成的代码自动包含 `@Log`、`@PreAuthorize` 等注解，遵循项目规范。
+| 功能 | 关键类 | 说明 |
+|---|---|---|
+| 用户管理 | `SysUser` / `ISysUserService` | 增删改查、角色分配、密码重置、状态切换、导出、三员账号保护 |
+| 角色管理 | `SysRole` / `ISysRoleService` | 增删改查、菜单权限分配、数据权限设置、三权分立校验 |
+| 菜单管理 | `SysMenu` / `ISysMenuService` | 树形菜单、按钮权限、动态路由，无万能超管——权限严格来自角色 |
+| 部门管理 | `SysDept` / `ISysDeptService` | 组织架构树、祖级链维护、循环引用检测 |
+| 字典管理 | `SysDictType` / `SysDictData` | 下拉选项维护 |
+| 操作日志 | `SysOperLog` + `OperLogEventListener` | 异步落库，记录操作人/时间/IP/参数/耗时，支持导出 |
+| 登录日志 | `SysLoginInfor` / `ISysLoginInforService` | 登录/登出自动记录，含浏览器/OS/IP，支持导出 |
+| 定时任务 | `SysJob` / `ISysJobService` | Quartz 可视化管理，启停、手动执行 |
+| 安全认证 | `UserDetailsServiceImpl` | Spring Security UserDetailsService 实现 |
 
 ### jiaoshoujia-admin（启动入口模块）
 
 Spring Boot 启动类、所有 REST Controller 和配置文件（`application.yml`、RSA 密钥、i18n 资源）所在模块。
 
-**依赖方向**：`admin` → `system` + `generator` → `framework` → `common`
+已实现的 Controller：
+
+| Controller | 路径 | 功能 |
+|---|---|---|
+| `AuthController` | `/auth` | 登录、登出、刷新 Token、获取用户信息、获取动态路由、个人资料、修改密码 |
+| `SysUserController` | `/system/user` | 用户 CRUD、导出、重置密码、状态切换 |
+| `SysRoleController` | `/system/role` | 角色 CRUD、导出、菜单权限分配 |
+| `SysMenuController` | `/system/menu` | 菜单 CRUD、菜单树 |
+| `SysDeptController` | `/system/dept` | 部门 CRUD、部门树 |
+| `SysDictTypeController` | `/system/dict/type` | 字典类型 CRUD、导出 |
+| `SysDictDataController` | `/system/dict/data` | 字典数据 CRUD |
+| `SysOperLogController` | `/system/operlog` | 操作日志查询、导出、删除、清空 |
+| `SysLoginInforController` | `/system/logininfor` | 登录日志查询、导出、删除、清空 |
+| `SysJobController` | `/system/job` | 定时任务 CRUD、启停、手动执行 |
+| `FileController` | `/common` | 文件上传、文件下载 |
+
+**依赖方向**：`admin` → `system` → `framework` → `common`
 
 ## 环境要求
 
@@ -177,34 +189,66 @@ npm run dev
 
 ### 5. 默认账号
 
-| 账号 | 密码 | 角色 |
-|---|---|---|
-| admin | admin123 | 超级管理员 |
-| user | admin123 | 普通用户 |
+| 账号 | 密码 | 角色 | 职责 |
+|---|---|---|---|
+| admin | admin123 | 系统管理员 | 用户/部门/字典/定时任务管理 |
+| secadmin | admin123 | 安全管理员（配置管理员） | 角色/菜单授权配置 |
+| auditadmin | admin123 | 审计管理员 | 操作日志/登录日志审计 |
+| user | admin123 | 普通用户 | 只读查看 |
+
+> 三员账号职责互斥：系统管理员不能配置角色权限，安全管理员不能查看日志，审计管理员不能管理用户——不存在万能超管。
 
 ## 内置功能
 
-- **用户管理**: 用户的增删改查、角色分配、密码重置
-- **角色管理**: 角色的增删改查、菜单权限分配、数据权限设置
-- **菜单管理**: 目录/菜单/按钮的树形管理
+### 系统管理
+
+- **用户管理**: 增删改查、角色分配、密码重置、状态切换、导出、三员账号保护
+- **角色管理**: 增删改查、菜单权限分配、数据权限设置、三权分立校验
+- **菜单管理**: 目录/菜单/按钮的树形管理，动态路由
 - **部门管理**: 组织架构的树形管理
 - **字典管理**: 系统字典的维护（如性别、状态等下拉选项）
-- **操作日志**: 系统操作的审计日志记录与查询，支持导出
-- **定时任务**: Quartz 定时任务的可视化管理
-- **代码生成**: 读取数据库表结构，一键生成前后端代码
+
+### 系统监控
+
+- **操作日志**: `@Log` 注解自动记录变更操作，含操作人/时间/IP/参数/耗时，支持导出
+- **登录日志**: 登录/登出自动记录，含浏览器/操作系统/IP 信息，支持导出
+- **定时任务**: Quartz 定时任务的可视化管理，支持启停和手动执行
+
+### 其他
+
+- **文件管理**: 文件上传/下载，扩展名白名单，大小限制
+- **个人中心**: 修改个人资料、修改密码
+
+## 三权分立（等保三员）
+
+系统按照等保要求实现了三权分立：
+
+| 角色 | 权限范围 | 不可访问 |
+|---|---|---|
+| **系统管理员** (sysadmin) | 用户管理、部门管理、字典管理、定时任务 | 角色/菜单授权、日志审计 |
+| **安全管理员** (secadmin) | 角色管理、菜单管理（授权配置） | 业务管理、日志审计 |
+| **审计管理员** (auditadmin) | 操作日志、登录日志（审计查看） | 业务管理、授权配置 |
+
+保护机制：
+- 三员账号不可删除/停用
+- 非三员不能重置三员密码
+- 不能修改自己的角色关联
+- 不能删除/停用自己
+- 菜单权限严格来自角色-菜单授权，无万能超管绕过
+- 角色菜单分配范围校验，防止越权
 
 ## 安全特性
 
 - **RSA-JWT (RS256)**: 非对称签名，私钥签发 / 公钥验证，防 Token 伪造
-- **双 Token**: accessToken (30min) + refreshToken (7d)
-- **RBAC 权限**: 用户-角色-菜单三级权限控制，支持按钮级权限
-- **数据权限**: @DataScope 注解，部门级数据过滤
+- **双 Token**: accessToken (30min) + refreshToken (7d)，前端自动静默刷新
+- **RBAC 权限**: 用户-角色-菜单三级权限控制，支持按钮级权限（后端 `@PreAuthorize` + 前端 `v-hasPermi`）
+- **数据权限**: `@DataScope` 注解，支持全部/自定义/本部门/本部门及以下/仅本人五种范围
 - **XSS 过滤**: 自动清洗请求参数中的危险脚本
-- **Sentinel 限流**: 接口级 QPS 控制，防恶意刷接口
-- **登录保护**: 连续失败锁定账户，支持验证码
-- **密码安全**: BCrypt 加密存储
-- **操作审计**: @Log 注解自动记录敏感操作
-- **安全响应头**: X-Frame-Options, CSP, X-Content-Type-Options 等
+- **Sentinel 限流**: 接口级 QPS 控制，`@RateLimiter` 注解
+- **登录保护**: 连续 5 次失败锁定 30 分钟，支持验证码开关
+- **密码安全**: BCrypt 加密存储，密码强度校验
+- **操作审计**: `@Log` 注解自动记录敏感操作，异步落库
+- **安全响应头**: X-Frame-Options、CSP、X-Content-Type-Options 等
 
 ## 国际化 (i18n)
 
@@ -228,14 +272,40 @@ npm run dev
 1. 后端：新建 `messages_xx.properties`（如 `messages_ja.properties`）
 2. 前端：在 `src/i18n/lang/` 下新建语言文件，在 `src/i18n/index.ts` 中注册
 
+## 前端功能清单
+
+### 已实现页面
+
+| 页面 | 路径 | 说明 |
+|---|---|---|
+| 登录 | `/login` | 用户名/密码登录，记住用户名 |
+| 首页仪表盘 | `/index` | 欢迎语、统计卡片、近期操作、快捷入口（按权限过滤） |
+| 用户管理 | `/system/user` | 部门树过滤、用户 CRUD、角色选择、导出、重置密码 |
+| 角色管理 | `/system/role` | 角色 CRUD、菜单权限树、数据权限配置、导出 |
+| 菜单管理 | `/system/menu` | 树形表格、目录/菜单/按钮类型 |
+| 部门管理 | `/system/dept` | 树形表格、组织架构管理 |
+| 字典管理 | `/system/dict` | 字典类型 + 字典数据两级管理 |
+| 操作日志 | `/monitor/operlog` | 按模块/人员/类型/状态/时间查询、查看详情、导出 |
+| 登录日志 | `/monitor/logininfor` | 按用户/IP/状态查询、导出 |
+| 定时任务 | `/monitor/job` | 任务 CRUD、启停、立即执行 |
+| 个人中心 | `/user/profile` | 个人资料修改、密码修改 |
+| 404 | `/*` | 未匹配路由 |
+
+### 前端核心能力
+
+- **动态路由**: 登录后从后端获取菜单，自动生成 Vue Router 路由
+- **按钮权限**: `v-hasPermi` 指令，按权限码控制按钮显隐
+- **Token 自动刷新**: 401 时自动用 refresh token 刷新，并发请求排队重放
+- **请求封装**: 统一错误处理、Blob 下载、分页数据自动展开
+
 ## 二次开发指南
 
 ### 新增业务模块
 
 1. **创建数据库表**并在 `sql/` 下更新初始化脚本
-2. **使用代码生成器**：访问管理界面「代码生成」，导入表结构，一键生成 CRUD 代码
-3. **复制生成的代码**到对应模块目录
-4. **添加菜单权限**：在「菜单管理」中添加对应的目录/菜单/按钮
+2. **后端**：在 `jiaoshoujia-system` 中新建 Domain / Mapper / Service，在 `jiaoshoujia-admin` 中新建 Controller
+3. **前端**：在 `src/api/` 中新建 API 文件，在 `src/views/` 中新建页面
+4. **添加菜单权限**：在「菜单管理」中添加对应的目录/菜单/按钮，或在 `init.sql` 中追加
 
 ### 新增自定义注解
 
@@ -315,7 +385,24 @@ openssl rsa -pubout -in private.pem -out public.pem
 
 将生成的文件替换 `jiaoshoujia-admin/src/main/resources/keys/` 下的对应文件。
 
-## 配置加密 (可选)
+## 数据库表结构
+
+| 表名 | 说明 |
+|---|---|
+| `sys_user` | 用户表 |
+| `sys_role` | 角色表（含 data_scope 数据权限范围） |
+| `sys_menu` | 菜单权限表（目录/菜单/按钮） |
+| `sys_dept` | 部门表（树形结构） |
+| `sys_user_role` | 用户-角色关联表 |
+| `sys_role_menu` | 角色-菜单关联表 |
+| `sys_role_dept` | 角色-部门关联表（自定义数据权限） |
+| `sys_dict_type` | 字典类型表 |
+| `sys_dict_data` | 字典数据表 |
+| `sys_oper_log` | 操作日志表 |
+| `sys_login_infor` | 登录日志表 |
+| `sys_job` | 定时任务表 |
+
+## 配置加密（可选）
 
 如需在配置文件中加密敏感信息，可启用 Jasypt：
 
