@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -48,6 +49,9 @@ class SysRoleServiceTest {
 
     @BeforeEach
     void setUp() {
+        // MyBatis-Plus ServiceImpl 的 baseMapper 位于父类，Mockito @InjectMocks 无法注入，手动注入 mock
+        ReflectionTestUtils.setField(roleService, "baseMapper", roleMapper);
+
         testRole = new SysRole();
         testRole.setId(1L);
         testRole.setRoleName("管理员");

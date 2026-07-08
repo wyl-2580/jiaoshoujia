@@ -16,6 +16,9 @@ public class SysRole extends BaseEntity {
     @TableField(exist = false)
     private Long[] menuIds;
 
+    @TableField(exist = false)
+    private Long[] deptIds;
+
     public String getRoleName() {
         return roleName;
     }
@@ -62,5 +65,13 @@ public class SysRole extends BaseEntity {
 
     public void setMenuIds(Long[] menuIds) {
         this.menuIds = menuIds;
+    }
+
+    public Long[] getDeptIds() {
+        return deptIds;
+    }
+
+    public void setDeptIds(Long[] deptIds) {
+        this.deptIds = deptIds;
     }
 }

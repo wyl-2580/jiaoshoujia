@@ -22,24 +22,34 @@ function loadView(component: string) {
   return modules['/src/views/error/404.vue']
 }
 
-function filterAsyncRoutes(menus: RouteMenu[]): RouteRecordRaw[] {
+function routeName(menu: RouteMenu) {
+  return menu.name || menu.path.replace(/^\//, '').replace(/[-/](\w)/g, (_, c) => c.toUpperCase())
+}
+
+function normalizePath(path: string, isChild: boolean) {
+  const cleanPath = path.replace(/^\/+/, '')
+  return isChild ? cleanPath : `/${cleanPath}`
+}
+
+function filterAsyncRoutes(menus: RouteMenu[], isChild = false): RouteRecordRaw[] {
   const routes: RouteRecordRaw[] = []
 
   menus.forEach((menu) => {
-    if (menu.hidden) return
+    if (menu.menuType === 'F') return
 
     const route: Partial<RouteRecordRaw> & { path: string; meta: Record<string, any> } = {
-      path: menu.path,
-      name: menu.name,
+      path: normalizePath(menu.path, isChild),
+      name: routeName(menu),
       meta: {
-        title: menu.meta?.title,
-        icon: menu.meta?.icon,
+        title: menu.meta?.title || menu.menuName,
+        icon: menu.meta?.icon || menu.icon,
         noCache: menu.meta?.noCache ?? false,
         link: menu.meta?.link,
+        hidden: menu.hidden || menu.visible === 1,
       },
     }
 
-    if (menu.component === 'Layout') {
+    if (menu.component === 'Layout' || (!menu.component && menu.children?.length)) {
       route.component = Layout
     } else if (menu.component === 'ParentView') {
       route.component = () => import('@/layout/components/AppMain.vue')
@@ -48,8 +58,11 @@ function filterAsyncRoutes(menus: RouteMenu[]): RouteRecordRaw[] {
     }
 
     if (menu.children && menu.children.length > 0) {
-      route.redirect = 'noRedirect'
-      route.children = filterAsyncRoutes(menu.children)
+      const firstChild = menu.children.find((child) => child.visible !== 1 && child.menuType !== 'F')
+      if (firstChild) {
+        route.redirect = `${route.path}/${normalizePath(firstChild.path, true)}`
+      }
+      route.children = filterAsyncRoutes(menu.children, true)
     }
 
     routes.push(route as RouteRecordRaw)

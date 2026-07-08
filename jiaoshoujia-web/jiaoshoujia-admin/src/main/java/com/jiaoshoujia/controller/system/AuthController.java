@@ -5,12 +5,14 @@ import com.jiaoshoujia.common.annotation.RateLimiter;
 import com.jiaoshoujia.common.constant.Constants;
 import com.jiaoshoujia.common.core.R;
 import com.jiaoshoujia.common.exception.BusinessException;
+import com.jiaoshoujia.common.utils.IpUtils;
 import com.jiaoshoujia.common.utils.MessageUtils;
 import com.jiaoshoujia.common.utils.SecurityUtils;
 import com.jiaoshoujia.common.utils.StringUtils;
 import com.jiaoshoujia.framework.cache.CacheService;
 import com.jiaoshoujia.framework.security.JwtTokenProvider;
 import com.jiaoshoujia.framework.security.LoginUser;
+import com.jiaoshoujia.system.service.ISysLoginInforService;
 import com.jiaoshoujia.system.service.ISysMenuService;
 import com.jiaoshoujia.system.service.ISysRoleService;
 import com.jiaoshoujia.system.service.ISysUserService;
@@ -21,6 +23,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -38,42 +41,62 @@ public class AuthController {
     private final ISysUserService userService;
     private final ISysRoleService roleService;
     private final ISysMenuService menuService;
+    private final ISysLoginInforService loginInforService;
+
+    @Value("${app.security.captcha-enabled:false}")
+    private boolean captchaEnabled;
 
     public AuthController(AuthenticationManager authenticationManager,
                           JwtTokenProvider jwtTokenProvider,
                           CacheService cacheService,
                           ISysUserService userService,
                           ISysRoleService roleService,
-                          ISysMenuService menuService) {
+                          ISysMenuService menuService,
+                          ISysLoginInforService loginInforService) {
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
         this.cacheService = cacheService;
         this.userService = userService;
         this.roleService = roleService;
         this.menuService = menuService;
+        this.loginInforService = loginInforService;
     }
 
     @Anonymous
     @RateLimiter(qps = 5, message = "登录请求过于频繁，请稍后再试")
     @PostMapping("/login")
-    public R<Map<String, Object>> login(@RequestBody LoginBody loginBody) {
-        if (StringUtils.isEmpty(loginBody.username()) || StringUtils.isEmpty(loginBody.password())) {
+    public R<Map<String, Object>> login(@RequestBody LoginBody loginBody, HttpServletRequest request) {
+        String username = loginBody.username();
+        String ip = IpUtils.getIpAddr(request);
+        String userAgent = request.getHeader("User-Agent");
+
+        if (StringUtils.isEmpty(username) || StringUtils.isEmpty(loginBody.password())) {
+            loginInforService.recordLogin(username, ip, userAgent, 1, "用户名或密码为空");
             return R.fail("用户名和密码不能为空");
         }
 
-        validateCaptcha(loginBody.code(), loginBody.uuid());
-        checkLoginAttempts(loginBody.username());
+        try {
+            if (captchaEnabled) {
+                validateCaptcha(loginBody.code(), loginBody.uuid());
+            }
+            checkLoginAttempts(username);
+        } catch (BusinessException e) {
+            loginInforService.recordLogin(username, ip, userAgent, 1, e.getMessage());
+            throw e;
+        }
 
         Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(loginBody.username(), loginBody.password()));
+                    new UsernamePasswordAuthenticationToken(username, loginBody.password()));
         } catch (BadCredentialsException e) {
-            recordLoginFailure(loginBody.username());
+            recordLoginFailure(username);
+            loginInforService.recordLogin(username, ip, userAgent, 1, MessageUtils.message("auth.login.failed"));
             return R.fail(MessageUtils.message("auth.login.failed"));
         }
 
-        clearLoginAttempts(loginBody.username());
+        clearLoginAttempts(username);
+        loginInforService.recordLogin(username, ip, userAgent, 0, "登录成功");
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
 
         String accessToken = jwtTokenProvider.createAccessToken(loginUser);
@@ -97,6 +120,12 @@ public class AuthController {
         if (StringUtils.isNotEmpty(token)) {
             String tokenId = jwtTokenProvider.getTokenId(token);
             cacheService.delete(Constants.LOGIN_USER_KEY + tokenId);
+            try {
+                String username = jwtTokenProvider.getUsername(token);
+                loginInforService.recordLogin(username, IpUtils.getIpAddr(request),
+                        request.getHeader("User-Agent"), 0, "退出成功");
+            } catch (Exception ignored) {
+            }
         }
         return R.ok();
     }
@@ -136,8 +165,9 @@ public class AuthController {
         }
 
         Set<String> permissions = menuService.selectMenuPermsByUserId(userId);
+        int dataScope = resolveUserDataScope(userId);
         LoginUser loginUser = new LoginUser(userId, username, user.getPassword(),
-                user.getDeptId(), permissions);
+                user.getDeptId(), permissions, dataScope);
 
         String newAccessToken = jwtTokenProvider.createAccessToken(loginUser);
         String newRefreshToken = jwtTokenProvider.createRefreshToken(loginUser);
@@ -217,6 +247,24 @@ public class AuthController {
             return bearerToken.substring(Constants.TOKEN_PREFIX.length());
         }
         return null;
+    }
+
+    private int resolveUserDataScope(Long userId) {
+        if (SecurityUtils.isAdmin(userId)) {
+            return 1;
+        }
+        var roles = roleService.selectRolesByUserId(userId);
+        int minScope = 5;
+        for (var role : roles) {
+            if (role.getDataScope() != null) {
+                try {
+                    int scope = Integer.parseInt(role.getDataScope());
+                    minScope = Math.min(minScope, scope);
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        return minScope;
     }
 
     public record LoginBody(String username, String password, String code, String uuid) {

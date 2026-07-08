@@ -28,8 +28,17 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
         wrapper.like(StringUtils.isNotEmpty(dictType.getDictName()), SysDictType::getDictName, dictType.getDictName())
                 .like(StringUtils.isNotEmpty(dictType.getDictType()), SysDictType::getDictType, dictType.getDictType())
                 .eq(dictType.getStatus() != null, SysDictType::getStatus, dictType.getStatus())
+                .ge(StringUtils.isNotEmpty(dictType.getBeginTime()), SysDictType::getCreateTime, dictType.getBeginTime())
+                .le(StringUtils.isNotEmpty(dictType.getEndTime()), SysDictType::getCreateTime, endOfDay(dictType.getEndTime()))
                 .orderByDesc(SysDictType::getCreateTime);
         return baseMapper.selectPage(page, wrapper);
+    }
+
+    private String endOfDay(String endTime) {
+        if (StringUtils.isEmpty(endTime) || endTime.length() > 10) {
+            return endTime;
+        }
+        return endTime + " 23:59:59";
     }
 
     @Override

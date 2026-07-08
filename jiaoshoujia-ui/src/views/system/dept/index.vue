@@ -7,8 +7,8 @@
       </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="部门状态" clearable>
-          <el-option label="正常" value="0" />
-          <el-option label="停用" value="1" />
+          <el-option label="正常" :value="0" />
+          <el-option label="停用" :value="1" />
         </el-select>
       </el-form-item>
       <el-form-item>
@@ -32,7 +32,7 @@
       v-if="refreshTable"
       v-loading="loading"
       :data="deptList"
-      row-key="deptId"
+      row-key="id"
       :default-expand-all="isExpandAll"
       :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
       class="data-table"
@@ -44,8 +44,8 @@
       <el-table-column prop="email" label="邮箱" width="180" show-overflow-tooltip />
       <el-table-column prop="status" label="状态" width="100" align="center">
         <template #default="{ row }">
-          <el-tag :type="row.status === '0' ? 'success' : 'danger'" size="small">
-            {{ row.status === '0' ? '正常' : '停用' }}
+          <el-tag :type="row.status === 0 ? 'success' : 'danger'" size="small">
+            {{ row.status === 0 ? '正常' : '停用' }}
           </el-tag>
         </template>
       </el-table-column>
@@ -66,7 +66,7 @@
           <el-tree-select
             v-model="form.parentId"
             :data="deptTreeOptions"
-            :props="{ label: 'label', value: 'id', children: 'children' }"
+            :props="({ label: 'label', value: 'id', children: 'children' } as any)"
             placeholder="选择上级部门"
             check-strictly
             style="width: 100%"
@@ -89,8 +89,8 @@
         </el-form-item>
         <el-form-item label="部门状态" prop="status">
           <el-radio-group v-model="form.status">
-            <el-radio value="0">正常</el-radio>
-            <el-radio value="1">停用</el-radio>
+            <el-radio :value="0">正常</el-radio>
+            <el-radio :value="1">停用</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -126,14 +126,14 @@ const queryParams = reactive({
 })
 
 const form = reactive<Record<string, any>>({
-  deptId: undefined,
+  id: undefined,
   parentId: undefined,
   deptName: '',
   orderNum: 0,
   leader: '',
   phone: '',
   email: '',
-  status: '0'
+  status: 0
 })
 
 const formRules: FormRules = {
@@ -148,13 +148,13 @@ function buildTree(data: any[]): any[] {
   const map: Record<number, any> = {}
   const roots: any[] = []
   data.forEach((item) => {
-    map[item.deptId] = { ...item, children: [] }
+    map[item.id] = { ...item, children: [] }
   })
   data.forEach((item) => {
     if (item.parentId && map[item.parentId]) {
-      map[item.parentId].children.push(map[item.deptId])
+      map[item.parentId].children.push(map[item.id])
     } else {
-      roots.push(map[item.deptId])
+      roots.push(map[item.id])
     }
   })
   return roots
@@ -164,13 +164,13 @@ function buildTreeSelect(data: any[]): any[] {
   const map: Record<number, any> = {}
   const roots: any[] = []
   data.forEach((item) => {
-    map[item.deptId] = { id: item.deptId, label: item.deptName, children: [] }
+    map[item.id] = { id: item.id, label: item.deptName, children: [] }
   })
   data.forEach((item) => {
     if (item.parentId && map[item.parentId]) {
-      map[item.parentId].children.push(map[item.deptId])
+      map[item.parentId].children.push(map[item.id])
     } else {
-      roots.push(map[item.deptId])
+      roots.push(map[item.id])
     }
   })
   return roots
@@ -209,21 +209,21 @@ function toggleExpandAll() {
 }
 
 function resetForm() {
-  form.deptId = undefined
+  form.id = undefined
   form.parentId = undefined
   form.deptName = ''
   form.orderNum = 0
   form.leader = ''
   form.phone = ''
   form.email = ''
-  form.status = '0'
+  form.status = 0
 }
 
 function handleAdd(row?: any) {
   resetForm()
   getDeptTreeOptions()
   if (row) {
-    form.parentId = row.deptId
+    form.parentId = row.id
   }
   dialogTitle.value = '添加部门'
   dialogVisible.value = true
@@ -232,7 +232,7 @@ function handleAdd(row?: any) {
 async function handleUpdate(row: any) {
   resetForm()
   await getDeptTreeOptions()
-  const res = await getDept(row.deptId)
+  const res = await getDept(row.id)
   Object.assign(form, res.data)
   dialogTitle.value = '修改部门'
   dialogVisible.value = true
@@ -243,7 +243,7 @@ function submitForm() {
     if (!valid) return
     submitLoading.value = true
     try {
-      if (form.deptId) {
+      if (form.id) {
         await updateDept(form)
         ElMessage.success('修改成功')
       } else {
@@ -264,7 +264,7 @@ function handleDelete(row: any) {
     cancelButtonText: '取消',
     type: 'warning'
   }).then(async () => {
-    await deleteDept(row.deptId)
+    await deleteDept(row.id)
     ElMessage.success('删除成功')
     getList()
   }).catch(() => {})

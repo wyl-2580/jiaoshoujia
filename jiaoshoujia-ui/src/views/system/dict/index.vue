@@ -10,8 +10,8 @@
       </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="字典状态" clearable>
-          <el-option label="正常" value="0" />
-          <el-option label="停用" value="1" />
+          <el-option label="正常" :value="0" />
+          <el-option label="停用" :value="1" />
         </el-select>
       </el-form-item>
       <el-form-item label="创建时间" prop="dateRange">
@@ -49,7 +49,7 @@
     <!-- Table -->
     <el-table v-loading="loading" :data="dictTypeList" @selection-change="handleSelectionChange" class="data-table">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="字典编号" prop="dictId" width="100" align="center" />
+      <el-table-column label="字典编号" prop="id" width="100" align="center" />
       <el-table-column label="字典名称" prop="dictName" show-overflow-tooltip />
       <el-table-column label="字典类型" show-overflow-tooltip>
         <template #default="{ row }">
@@ -60,8 +60,8 @@
       </el-table-column>
       <el-table-column label="状态" width="100" align="center">
         <template #default="{ row }">
-          <el-tag :type="row.status === '0' ? 'success' : 'danger'" size="small">
-            {{ row.status === '0' ? '正常' : '停用' }}
+          <el-tag :type="row.status === 0 ? 'success' : 'danger'" size="small">
+            {{ row.status === 0 ? '正常' : '停用' }}
           </el-tag>
         </template>
       </el-table-column>
@@ -94,12 +94,12 @@
           <el-input v-model="form.dictName" placeholder="请输入字典名称" />
         </el-form-item>
         <el-form-item label="字典类型" prop="dictType">
-          <el-input v-model="form.dictType" placeholder="请输入字典类型" :disabled="!!form.dictId" />
+          <el-input v-model="form.dictType" placeholder="请输入字典类型" :disabled="!!form.id" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">
-            <el-radio value="0">正常</el-radio>
-            <el-radio value="1">停用</el-radio>
+            <el-radio :value="0">正常</el-radio>
+            <el-radio :value="1">停用</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
@@ -118,7 +118,14 @@
 import { ref, reactive, onMounted } from 'vue'
 import { Search, Refresh, Plus, Edit, Delete, Download } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { listDictType, getDictType, addDictType, updateDictType, deleteDictType } from '@/api/system/dict'
+import {
+  listType as listDictType,
+  getType as getDictType,
+  addType as addDictType,
+  updateType as updateDictType,
+  deleteType as deleteDictType,
+  exportType as exportDictType,
+} from '@/api/system/dict'
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -145,10 +152,10 @@ const queryParams = reactive({
 })
 
 const form = reactive<Record<string, any>>({
-  dictId: undefined,
+  id: undefined,
   dictName: '',
   dictType: '',
-  status: '0',
+  status: 0,
   remark: ''
 })
 
@@ -187,16 +194,16 @@ function resetQuery() {
 }
 
 function handleSelectionChange(selection: any[]) {
-  ids.value = selection.map((item) => item.dictId)
+  ids.value = selection.map((item) => item.id)
   single.value = selection.length !== 1
   multiple.value = !selection.length
 }
 
 function resetForm() {
-  form.dictId = undefined
+  form.id = undefined
   form.dictName = ''
   form.dictType = ''
-  form.status = '0'
+  form.status = 0
   form.remark = ''
 }
 
@@ -208,7 +215,7 @@ function handleAdd() {
 
 async function handleUpdate(row?: any) {
   resetForm()
-  const dictId = row?.dictId || ids.value[0]
+  const dictId = row?.id || ids.value[0]
   const res = await getDictType(dictId)
   Object.assign(form, res.data)
   dialogTitle.value = '修改字典类型'
@@ -220,7 +227,7 @@ function submitForm() {
     if (!valid) return
     submitLoading.value = true
     try {
-      if (form.dictId) {
+      if (form.id) {
         await updateDictType(form)
         ElMessage.success('修改成功')
       } else {
@@ -236,7 +243,7 @@ function submitForm() {
 }
 
 function handleDelete(row?: any) {
-  const dictIds = row?.dictId ? [row.dictId] : ids.value
+  const dictIds = row?.id ? [row.id] : ids.value
   ElMessageBox.confirm(`是否确认删除字典编号为"${dictIds}"的数据项？`, '警告', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
@@ -248,8 +255,13 @@ function handleDelete(row?: any) {
   }).catch(() => {})
 }
 
-function handleExport() {
-  ElMessage.info('导出功能开发中')
+async function handleExport() {
+  try {
+    await exportDictType(queryParams)
+    ElMessage.success('导出成功')
+  } catch {
+    ElMessage.error('导出失败')
+  }
 }
 
 onMounted(() => {

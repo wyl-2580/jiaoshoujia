@@ -2,7 +2,9 @@ package com.jiaoshoujia.system.service.impl;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -57,7 +59,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         return user;
     }
 
-    @DataScope(deptAlias = "sys_user", userAlias = "sys_user")
+    @DataScope(deptAlias = "sys_user", userAlias = "sys_user", userColumn = "id")
     @Override
     public Page<SysUser> selectUserPage(Page<SysUser> page, SysUserQuery query) {
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
@@ -66,9 +68,61 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
                 .eq(query.getStatus() != null, SysUser::getStatus, query.getStatus())
                 .eq(query.getDeptId() != null, SysUser::getDeptId, query.getDeptId())
                 .ge(StringUtils.isNotEmpty(query.getBeginTime()), SysUser::getCreateTime, query.getBeginTime())
-                .le(StringUtils.isNotEmpty(query.getEndTime()), SysUser::getCreateTime, query.getEndTime())
+                .le(StringUtils.isNotEmpty(query.getEndTime()), SysUser::getCreateTime, endOfDay(query.getEndTime()))
                 .orderByDesc(SysUser::getCreateTime);
-        return baseMapper.selectPage(page, wrapper);
+        Page<SysUser> result = baseMapper.selectPage(page, wrapper);
+        populateUserListExtras(result.getRecords());
+        return result;
+    }
+
+    private void populateUserListExtras(List<SysUser> users) {
+        if (users.isEmpty()) return;
+
+        List<Long> userIds = users.stream().map(SysUser::getId).collect(Collectors.toList());
+
+        // 批量查部门
+        List<Long> deptIds = users.stream().map(SysUser::getDeptId)
+                .filter(id -> id != null).distinct().collect(Collectors.toList());
+        java.util.Map<Long, String> deptNameMap = new java.util.HashMap<>();
+        if (!deptIds.isEmpty()) {
+            List<SysDept> depts = deptMapper.selectList(
+                    new LambdaQueryWrapper<SysDept>().in(SysDept::getId, deptIds));
+            for (SysDept dept : depts) {
+                deptNameMap.put(dept.getId(), dept.getDeptName());
+            }
+        }
+
+        // 批量查角色
+        List<SysUserRole> allUserRoles = userRoleMapper.selectList(
+                new LambdaQueryWrapper<SysUserRole>().in(SysUserRole::getUserId, userIds));
+        List<Long> roleIds = allUserRoles.stream().map(SysUserRole::getRoleId)
+                .distinct().collect(Collectors.toList());
+        java.util.Map<Long, SysRole> roleMap = new java.util.HashMap<>();
+        if (!roleIds.isEmpty()) {
+            List<SysRole> roles = roleMapper.selectList(
+                    new LambdaQueryWrapper<SysRole>().in(SysRole::getId, roleIds));
+            for (SysRole role : roles) {
+                roleMap.put(role.getId(), role);
+            }
+        }
+
+        for (SysUser user : users) {
+            user.setDeptName(deptNameMap.get(user.getDeptId()));
+
+            List<SysRole> userRoles = allUserRoles.stream()
+                    .filter(ur -> ur.getUserId().equals(user.getId()))
+                    .map(ur -> roleMap.get(ur.getRoleId()))
+                    .filter(r -> r != null)
+                    .collect(Collectors.toList());
+            user.setRoles(userRoles);
+        }
+    }
+
+    private String endOfDay(String endTime) {
+        if (StringUtils.isEmpty(endTime) || endTime.length() > 10) {
+            return endTime;
+        }
+        return endTime + " 23:59:59";
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -77,7 +131,9 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         if (!checkUsernameUnique(user)) {
             throw new BusinessException(MessageUtils.message("user.username.exists", user.getUsername()));
         }
-        save(user);
+        if (!save(user)) {
+            return 0;
+        }
         insertUserRoles(user.getId(), user.getRoleIds());
         return 1;
     }
@@ -88,9 +144,12 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         if (!checkUsernameUnique(user)) {
             throw new BusinessException(MessageUtils.message("user.username.exists", user.getUsername()));
         }
+        checkSelfRoleChange(user);
         user.setPassword(null);
         user.setStatus(null);
-        updateById(user);
+        if (!updateById(user)) {
+            return 0;
+        }
         userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, user.getId()));
         insertUserRoles(user.getId(), user.getRoleIds());
         return 1;
@@ -109,8 +168,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         }
         List<Long> ids = Arrays.asList(userIds);
         userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().in(SysUserRole::getUserId, ids));
-        removeBatchByIds(ids);
-        return 1;
+        return removeBatchByIds(ids) ? 1 : 0;
     }
 
     @Override
@@ -162,11 +220,33 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
                 new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, user.getId()));
         if (!userRoles.isEmpty()) {
             List<Long> roleIds = userRoles.stream().map(SysUserRole::getRoleId).collect(Collectors.toList());
-            List<SysRole> roles = roleMapper.selectBatchIds(roleIds);
+            List<SysRole> roles = roleMapper.selectList(
+                    new LambdaQueryWrapper<SysRole>().in(SysRole::getId, roleIds));
             user.setRoles(roles);
             user.setRoleIds(roleIds.toArray(new Long[0]));
         } else {
             user.setRoles(Collections.emptyList());
+        }
+    }
+
+    /**
+     * 三权分立：禁止通过管理接口修改自己的角色关联。
+     * 如果被编辑的用户是当前登录用户，且角色列表发生了变更，则拒绝操作。
+     */
+    private void checkSelfRoleChange(SysUser user) {
+        Long currentUserId = SecurityUtils.getUserId();
+        if (!currentUserId.equals(user.getId())) {
+            return;
+        }
+        List<SysUserRole> existing = userRoleMapper.selectList(
+                new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, currentUserId));
+        Set<Long> currentRoleIds = existing.stream()
+                .map(SysUserRole::getRoleId).collect(Collectors.toSet());
+        Set<Long> newRoleIds = user.getRoleIds() != null
+                ? new HashSet<>(Arrays.asList(user.getRoleIds()))
+                : Collections.emptySet();
+        if (!currentRoleIds.equals(newRoleIds)) {
+            throw new BusinessException(MessageUtils.message("user.self.role.not.allow.edit"));
         }
     }
 

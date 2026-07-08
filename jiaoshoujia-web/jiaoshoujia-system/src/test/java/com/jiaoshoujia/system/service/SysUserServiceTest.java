@@ -18,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.jiaoshoujia.common.utils.SecurityUtils;
 
@@ -51,6 +52,12 @@ class SysUserServiceTest {
 
     @BeforeEach
     void setUp() {
+        // MyBatis-Plus ServiceImpl 的 baseMapper/entityClass/mapperClass 位于父类，Mockito @InjectMocks 无法注入。
+        // 手动注入：baseMapper 提供 mock；entityClass/mapperClass 避免 lambdaQuery()/lambdaUpdate() 通过真实 MapperProxy 推断类型。
+        ReflectionTestUtils.setField(userService, "baseMapper", userMapper);
+        ReflectionTestUtils.setField(userService, "entityClass", SysUser.class);
+        ReflectionTestUtils.setField(userService, "mapperClass", SysUserMapper.class);
+
         testUser = new SysUser();
         testUser.setId(100L);
         testUser.setUsername("testuser");

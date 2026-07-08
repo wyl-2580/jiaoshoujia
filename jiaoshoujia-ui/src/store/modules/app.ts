@@ -6,6 +6,7 @@ interface AppState {
   sidebar: {
     opened: boolean
     withoutAnimation: boolean
+    hide: boolean
   }
   device: DeviceType
 }
@@ -15,6 +16,7 @@ export const useAppStore = defineStore('app', {
     sidebar: {
       opened: localStorage.getItem('sidebarStatus') !== '0',
       withoutAnimation: false,
+      hide: false,
     },
     device: 'desktop',
   }),

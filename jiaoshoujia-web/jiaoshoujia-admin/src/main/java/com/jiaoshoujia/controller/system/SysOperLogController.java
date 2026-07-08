@@ -24,17 +24,17 @@ public class SysOperLogController {
         this.operLogService = operLogService;
     }
 
-    @PreAuthorize("hasAuthority('system:operlog:list')")
+    @PreAuthorize("hasAuthority('monitor:operlog:list')")
     @GetMapping("/list")
     public R<PageResult<SysOperLog>> list(SysOperLog operLog,
-                                           @RequestParam(defaultValue = "1") Integer pageNum,
-                                           @RequestParam(defaultValue = "10") Integer pageSize) {
+                                           @RequestParam(name = "pageNum", defaultValue = "1") Integer pageNum,
+                                           @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
         Page<SysOperLog> page = new Page<>(pageNum, pageSize);
         Page<SysOperLog> result = operLogService.selectOperLogPage(page, operLog);
         return R.ok(PageResult.of(result.getTotal(), result.getRecords()));
     }
 
-    @PreAuthorize("hasAuthority('system:operlog:export')")
+    @PreAuthorize("hasAuthority('monitor:operlog:export')")
     @Log(title = "操作日志", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, SysOperLog operLog) {
@@ -42,14 +42,14 @@ public class SysOperLogController {
         ExcelUtils.exportExcel(response, "操作日志", SysOperLog.class, list);
     }
 
-    @PreAuthorize("hasAuthority('system:operlog:remove')")
+    @PreAuthorize("hasAuthority('monitor:operlog:remove')")
     @Log(title = "操作日志", businessType = BusinessType.DELETE)
     @DeleteMapping("/{operIds}")
-    public R<Void> remove(@PathVariable Long[] operIds) {
+    public R<Void> remove(@PathVariable(name = "operIds") Long[] operIds) {
         return operLogService.deleteOperLogByIds(operIds) > 0 ? R.ok() : R.fail();
     }
 
-    @PreAuthorize("hasAuthority('system:operlog:remove')")
+    @PreAuthorize("hasAuthority('monitor:operlog:clear')")
     @Log(title = "操作日志", businessType = BusinessType.CLEAN)
     @DeleteMapping("/clean")
     public R<Void> clean() {

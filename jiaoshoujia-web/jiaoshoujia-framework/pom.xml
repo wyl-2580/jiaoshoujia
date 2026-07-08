@@ -20,6 +20,12 @@
             <artifactId>jiaoshoujia-common</artifactId>
         </dependency>
 
+        <!-- MyBatis-Plus jsqlparser 模块 (PaginationInnerInterceptor / SQL 解析) -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+        </dependency>
+
         <!-- Spring Boot Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

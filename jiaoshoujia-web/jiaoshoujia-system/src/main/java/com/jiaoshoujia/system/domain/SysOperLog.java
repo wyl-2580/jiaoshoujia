@@ -1,6 +1,7 @@
 package com.jiaoshoujia.system.domain;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
@@ -31,6 +32,12 @@ public class SysOperLog implements Serializable {
     private LocalDateTime operTime;
     private Long costTime;
     private String operLocation;
+
+    @TableField(exist = false)
+    private String beginTime;
+
+    @TableField(exist = false)
+    private String endTime;
 
     public Long getId() {
         return id;
@@ -166,5 +173,21 @@ public class SysOperLog implements Serializable {
 
     public void setOperLocation(String operLocation) {
         this.operLocation = operLocation;
+    }
+
+    public String getBeginTime() {
+        return beginTime;
+    }
+
+    public void setBeginTime(String beginTime) {
+        this.beginTime = beginTime;
+    }
+
+    public String getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(String endTime) {
+        this.endTime = endTime;
     }
 }

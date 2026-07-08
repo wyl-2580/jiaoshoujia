@@ -1,20 +1,20 @@
-import { get, post, put, del } from '@/utils/request'
+import { get, post, put, del, download } from '@/utils/request'
 
 export interface DictTypeQuery {
   pageNum?: number
   pageSize?: number
   dictName?: string
   dictType?: string
-  status?: string
+  status?: number | string
   beginTime?: string
   endTime?: string
 }
 
 export interface DictTypeForm {
-  dictId?: number
+  id?: number
   dictName?: string
   dictType?: string
-  status?: string
+  status?: number | string
   remark?: string
 }
 
@@ -23,19 +23,19 @@ export interface DictDataQuery {
   pageSize?: number
   dictType?: string
   dictLabel?: string
-  status?: string
+  status?: number | string
 }
 
 export interface DictDataForm {
-  dictCode?: number
+  id?: number
   dictSort?: number
   dictLabel?: string
   dictValue?: string
   dictType?: string
   cssClass?: string
   listClass?: string
-  isDefault?: string
-  status?: string
+  isDefault?: number | string
+  status?: number | string
   remark?: string
 }
 
@@ -43,8 +43,8 @@ export function listType(query: DictTypeQuery) {
   return get('/api/system/dict/type/list', query)
 }
 
-export function getType(dictId: number) {
-  return get(`/api/system/dict/type/${dictId}`)
+export function getType(id: number) {
+  return get(`/api/system/dict/type/${id}`)
 }
 
 export function addType(data: DictTypeForm) {
@@ -63,8 +63,8 @@ export function listData(query: DictDataQuery) {
   return get('/api/system/dict/data/list', query)
 }
 
-export function getData(dictCode: number) {
-  return get(`/api/system/dict/data/${dictCode}`)
+export function getData(id: number) {
+  return get(`/api/system/dict/data/${id}`)
 }
 
 export function addData(data: DictDataForm) {
@@ -81,4 +81,8 @@ export function deleteData(dictCodes: string) {
 
 export function getDataByType(dictType: string) {
   return get(`/api/system/dict/data/type/${dictType}`)
+}
+
+export function exportType(query: DictTypeQuery) {
+  return download('/api/system/dict/type/export', query, '字典类型.xlsx')
 }

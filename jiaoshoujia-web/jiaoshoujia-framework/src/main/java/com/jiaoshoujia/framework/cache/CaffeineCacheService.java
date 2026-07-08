@@ -18,8 +18,25 @@ public class CaffeineCacheService implements CacheService {
         }
     }
 
+    private static class CounterEntry {
+        private final AtomicLong value = new AtomicLong(0);
+        private volatile long expireAt = -1;
+
+        boolean isExpired() {
+            return expireAt > 0 && System.currentTimeMillis() > expireAt;
+        }
+
+        long incrementAndGet() {
+            return value.incrementAndGet();
+        }
+
+        void expireAfter(long timeout, TimeUnit unit) {
+            expireAt = System.currentTimeMillis() + unit.toMillis(timeout);
+        }
+    }
+
     private final Cache<String, CacheEntry> cache;
-    private final Cache<String, AtomicLong> counters;
+    private final Cache<String, CounterEntry> counters;
 
     public CaffeineCacheService() {
         this.cache = Caffeine.newBuilder()
@@ -77,7 +94,12 @@ public class CaffeineCacheService implements CacheService {
 
     @Override
     public long increment(String key) {
-        AtomicLong counter = counters.get(key, k -> new AtomicLong(0));
+        CounterEntry counter = counters.asMap().compute(key, (k, existing) -> {
+            if (existing == null || existing.isExpired()) {
+                return new CounterEntry();
+            }
+            return existing;
+        });
         return counter.incrementAndGet();
     }
 
@@ -87,6 +109,14 @@ public class CaffeineCacheService implements CacheService {
         if (entry != null && !entry.isExpired()) {
             long expireAt = System.currentTimeMillis() + unit.toMillis(timeout);
             cache.put(key, new CacheEntry(entry.value(), expireAt));
+        }
+        CounterEntry counter = counters.getIfPresent(key);
+        if (counter != null) {
+            if (counter.isExpired()) {
+                counters.invalidate(key);
+            } else {
+                counter.expireAfter(timeout, unit);
+            }
         }
     }
 }

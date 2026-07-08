@@ -1,26 +1,26 @@
-import { get, post, put, del } from '@/utils/request'
+import { get, post, put, del, download } from '@/utils/request'
 
 export interface UserQuery {
   pageNum?: number
   pageSize?: number
-  userName?: string
-  phonenumber?: string
-  status?: string
+  username?: string
+  phone?: string
+  status?: number | string
   deptId?: number
   beginTime?: string
   endTime?: string
 }
 
 export interface UserForm {
-  userId?: number
+  id?: number
   deptId?: number
-  userName?: string
-  nickName?: string
+  username?: string
+  nickname?: string
   password?: string
-  phonenumber?: string
+  phone?: string
   email?: string
-  sex?: string
-  status?: string
+  sex?: number | string
+  status?: number | string
   postIds?: number[]
   roleIds?: number[]
   remark?: string
@@ -30,8 +30,8 @@ export function listUser(query: UserQuery) {
   return get('/api/system/user/list', query)
 }
 
-export function getUser(userId: number) {
-  return get(`/api/system/user/${userId}`)
+export function getUser(id: number) {
+  return get(`/api/system/user/${id}`)
 }
 
 export function addUser(data: UserForm) {
@@ -46,10 +46,14 @@ export function deleteUser(userIds: string) {
   return del(`/api/system/user/${userIds}`)
 }
 
-export function resetUserPwd(data: { userId: number; password: string }) {
+export function resetUserPwd(data: { id: number; password: string }) {
   return put('/api/system/user/resetPwd', data)
 }
 
-export function changeUserStatus(data: { userId: number; status: string }) {
+export function changeUserStatus(data: { id: number; status: number | string }) {
   return put('/api/system/user/changeStatus', data)
+}
+
+export function exportUser(query: UserQuery) {
+  return download('/api/system/user/export', query, '用户数据.xlsx')
 }

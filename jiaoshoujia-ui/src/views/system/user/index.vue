@@ -33,11 +33,11 @@
       <el-col :xs="24" :sm="16" :md="18" :lg="19">
         <!-- Search -->
         <el-form :model="queryParams" ref="queryFormRef" :inline="true" class="search-form">
-          <el-form-item label="用户名称" prop="userName">
-            <el-input v-model="queryParams.userName" placeholder="请输入用户名称" clearable @keyup.enter="handleQuery" />
+          <el-form-item label="用户名称" prop="username">
+            <el-input v-model="queryParams.username" placeholder="请输入用户名称" clearable @keyup.enter="handleQuery" />
           </el-form-item>
-          <el-form-item label="手机号码" prop="phonenumber">
-            <el-input v-model="queryParams.phonenumber" placeholder="请输入手机号码" clearable @keyup.enter="handleQuery" />
+          <el-form-item label="手机号码" prop="phone">
+            <el-input v-model="queryParams.phone" placeholder="请输入手机号码" clearable @keyup.enter="handleQuery" />
           </el-form-item>
           <el-form-item label="状态" prop="status">
             <el-select v-model="queryParams.status" placeholder="用户状态" clearable>
@@ -80,17 +80,27 @@
         <!-- Table -->
         <el-table v-loading="loading" :data="userList" @selection-change="handleSelectionChange" class="data-table">
           <el-table-column type="selection" width="50" align="center" />
-          <el-table-column label="用户编号" prop="userId" width="90" align="center" />
-          <el-table-column label="用户名称" prop="userName" show-overflow-tooltip />
-          <el-table-column label="用户昵称" prop="nickName" show-overflow-tooltip />
-          <el-table-column label="部门" prop="dept.deptName" show-overflow-tooltip />
-          <el-table-column label="手机号码" prop="phonenumber" width="120" />
+          <el-table-column label="用户编号" prop="id" width="90" align="center" />
+          <el-table-column label="用户名称" prop="username" show-overflow-tooltip />
+          <el-table-column label="用户昵称" prop="nickname" show-overflow-tooltip />
+          <el-table-column label="部门" prop="deptName" show-overflow-tooltip />
+          <el-table-column label="角色" show-overflow-tooltip min-width="140">
+            <template #default="{ row }">
+              <template v-if="row.roles && row.roles.length">
+                <el-tag v-for="role in row.roles" :key="role.id" size="small" style="margin-right: 4px">
+                  {{ role.roleName }}
+                </el-tag>
+              </template>
+              <span v-else style="color: #909399">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="手机号码" prop="phone" width="120" />
           <el-table-column label="状态" width="80" align="center">
             <template #default="{ row }">
               <el-switch
                 v-model="row.status"
-                active-value="0"
-                inactive-value="1"
+                :active-value="0"
+                :inactive-value="1"
                 @change="handleStatusChange(row)"
               />
             </template>
@@ -131,8 +141,8 @@
       <el-form ref="formRef" :model="form" :rules="formRules" label-width="90px">
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="用户昵称" prop="nickName">
-              <el-input v-model="form.nickName" placeholder="请输入用户昵称" />
+            <el-form-item label="用户昵称" prop="nickname">
+              <el-input v-model="form.nickname" placeholder="请输入用户昵称" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -140,7 +150,7 @@
               <el-tree-select
                 v-model="form.deptId"
                 :data="deptTree"
-                :props="{ label: 'label', value: 'id', children: 'children' }"
+                :props="({ label: 'label', value: 'id', children: 'children' } as any)"
                 placeholder="请选择归属部门"
                 check-strictly
                 style="width: 100%"
@@ -150,8 +160,8 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="手机号码" prop="phonenumber">
-              <el-input v-model="form.phonenumber" placeholder="请输入手机号码" maxlength="11" />
+            <el-form-item label="手机号码" prop="phone">
+              <el-input v-model="form.phone" placeholder="请输入手机号码" maxlength="11" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -162,11 +172,11 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="用户名称" prop="userName">
-              <el-input v-model="form.userName" placeholder="请输入用户名称" :disabled="!!form.userId" />
+            <el-form-item label="用户名称" prop="username">
+              <el-input v-model="form.username" placeholder="请输入用户名称" :disabled="!!form.id" />
             </el-form-item>
           </el-col>
-          <el-col :span="12" v-if="!form.userId">
+          <el-col :span="12" v-if="!form.id">
             <el-form-item label="用户密码" prop="password">
               <el-input v-model="form.password" type="password" placeholder="请输入用户密码" show-password />
             </el-form-item>
@@ -176,17 +186,17 @@
           <el-col :span="12">
             <el-form-item label="用户性别" prop="sex">
               <el-radio-group v-model="form.sex">
-                <el-radio value="0">男</el-radio>
-                <el-radio value="1">女</el-radio>
-                <el-radio value="2">未知</el-radio>
+                <el-radio :value="0">男</el-radio>
+                <el-radio :value="1">女</el-radio>
+                <el-radio :value="2">未知</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="状态" prop="status">
               <el-radio-group v-model="form.status">
-                <el-radio value="0">正常</el-radio>
-                <el-radio value="1">停用</el-radio>
+                <el-radio :value="0">正常</el-radio>
+                <el-radio :value="1">停用</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -197,10 +207,10 @@
               <el-select v-model="form.roleIds" multiple placeholder="请选择角色" style="width: 100%">
                 <el-option
                   v-for="item in roleOptions"
-                  :key="item.roleId"
+                  :key="item.id"
                   :label="item.roleName"
-                  :value="item.roleId"
-                  :disabled="item.status === '1'"
+                  :value="item.id"
+                  :disabled="item.status === 1"
                 />
               </el-select>
             </el-form-item>
@@ -222,7 +232,7 @@
     <el-dialog title="重置密码" v-model="resetPwdVisible" width="420px" append-to-body destroy-on-close>
       <el-form ref="resetPwdFormRef" :model="resetPwdForm" :rules="resetPwdRules" label-width="90px">
         <el-form-item label="用户名称">
-          <span>{{ resetPwdForm.userName }}</span>
+          <span>{{ resetPwdForm.username }}</span>
         </el-form-item>
         <el-form-item label="新密码" prop="password">
           <el-input v-model="resetPwdForm.password" type="password" placeholder="请输入新密码" show-password />
@@ -240,9 +250,9 @@
 import { ref, reactive, watch, onMounted } from 'vue'
 import { Search, Refresh, Plus, Edit, Delete, Download, DArrowRight, Key } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { listUser, getUser, addUser, updateUser, deleteUser, resetUserPwd, changeUserStatus } from '@/api/system/user'
+import { listUser, getUser, addUser, updateUser, deleteUser, resetUserPwd, changeUserStatus, exportUser } from '@/api/system/user'
 import { listDept } from '@/api/system/dept'
-import { listRole } from '@/api/system/role'
+import { optionselect as roleOptionselect } from '@/api/system/role'
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -267,8 +277,8 @@ const resetPwdFormRef = ref<FormInstance>()
 const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
-  userName: '',
-  phonenumber: '',
+  username: '',
+  phone: '',
   status: '',
   deptId: undefined as number | undefined,
   beginTime: '',
@@ -276,34 +286,34 @@ const queryParams = reactive({
 })
 
 const form = reactive<Record<string, any>>({
-  userId: undefined,
-  userName: '',
-  nickName: '',
+  id: undefined,
+  username: '',
+  nickname: '',
   deptId: undefined,
-  phonenumber: '',
+  phone: '',
   email: '',
   password: '',
-  sex: '0',
-  status: '0',
+  sex: 0,
+  status: 0,
   roleIds: [],
   remark: ''
 })
 
 const resetPwdForm = reactive({
-  userId: undefined as number | undefined,
-  userName: '',
+  id: undefined as number | undefined,
+  username: '',
   password: ''
 })
 
 const formRules: FormRules = {
-  userName: [{ required: true, message: '用户名称不能为空', trigger: 'blur' }],
-  nickName: [{ required: true, message: '用户昵称不能为空', trigger: 'blur' }],
+  username: [{ required: true, message: '用户名称不能为空', trigger: 'blur' }],
+  nickname: [{ required: true, message: '用户昵称不能为空', trigger: 'blur' }],
   password: [
     { required: true, message: '用户密码不能为空', trigger: 'blur' },
     { min: 5, max: 20, message: '用户密码长度必须介于 5 和 20 之间', trigger: 'blur' }
   ],
   email: [{ type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }],
-  phonenumber: [{ pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }]
+  phone: [{ pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }]
 }
 
 const resetPwdRules: FormRules = {
@@ -331,13 +341,13 @@ function buildTree(data: any[]): any[] {
   const map: Record<number, any> = {}
   const roots: any[] = []
   data.forEach((item: any) => {
-    map[item.deptId] = { id: item.deptId, label: item.deptName, children: [] }
+    map[item.id] = { id: item.id, label: item.deptName, children: [] }
   })
   data.forEach((item: any) => {
     if (item.parentId && map[item.parentId]) {
-      map[item.parentId].children.push(map[item.deptId])
+      map[item.parentId].children.push(map[item.id])
     } else {
-      roots.push(map[item.deptId])
+      roots.push(map[item.id])
     }
   })
   return roots
@@ -379,21 +389,21 @@ function resetQuery() {
 }
 
 function handleSelectionChange(selection: any[]) {
-  ids.value = selection.map((item) => item.userId)
+  ids.value = selection.map((item) => item.id)
   single.value = selection.length !== 1
   multiple.value = !selection.length
 }
 
 function resetForm() {
-  form.userId = undefined
-  form.userName = ''
-  form.nickName = ''
+  form.id = undefined
+  form.username = ''
+  form.nickname = ''
   form.deptId = undefined
-  form.phonenumber = ''
+  form.phone = ''
   form.email = ''
   form.password = ''
-  form.sex = '0'
-  form.status = '0'
+  form.sex = 0
+  form.status = 0
   form.roleIds = []
   form.remark = ''
 }
@@ -406,11 +416,11 @@ function handleAdd() {
 
 async function handleUpdate(row?: any) {
   resetForm()
-  const userId = row?.userId || ids.value[0]
+  const userId = row?.id || ids.value[0]
   const res = await getUser(userId)
   Object.assign(form, res.data)
   form.roleIds = res.data.roleIds || []
-  roleOptions.value = res.roles || []
+  roleOptions.value = roleOptions.value.length ? roleOptions.value : []
   dialogTitle.value = '修改用户'
   dialogVisible.value = true
 }
@@ -420,7 +430,7 @@ function submitForm() {
     if (!valid) return
     submitLoading.value = true
     try {
-      if (form.userId) {
+      if (form.id) {
         await updateUser(form)
         ElMessage.success('修改成功')
       } else {
@@ -436,7 +446,7 @@ function submitForm() {
 }
 
 function handleDelete(row?: any) {
-  const userIds = row?.userId ? [row.userId] : ids.value
+  const userIds = row?.id ? [row.id] : ids.value
   ElMessageBox.confirm(`是否确认删除用户编号为"${userIds}"的数据项？`, '警告', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
@@ -449,20 +459,20 @@ function handleDelete(row?: any) {
 }
 
 async function handleStatusChange(row: any) {
-  const text = row.status === '0' ? '启用' : '停用'
+  const text = row.status === 0 ? '启用' : '停用'
   try {
-    await ElMessageBox.confirm(`确认要${text}"${row.userName}"用户吗？`, '警告', { type: 'warning' })
-    await changeUserStatus(row.userId, row.status)
+    await ElMessageBox.confirm(`确认要${text}"${row.username}"用户吗？`, '警告', { type: 'warning' })
+    await changeUserStatus({ id: row.id, status: row.status })
     ElMessage.success(`${text}成功`)
   } catch {
-    row.status = row.status === '0' ? '1' : '0'
+    row.status = row.status === 0 ? 1 : 0
   }
 }
 
 function handleCommand(command: string, row: any) {
   if (command === 'resetPwd') {
-    resetPwdForm.userId = row.userId
-    resetPwdForm.userName = row.userName
+    resetPwdForm.id = row.id
+    resetPwdForm.username = row.username
     resetPwdForm.password = ''
     resetPwdVisible.value = true
   }
@@ -471,19 +481,24 @@ function handleCommand(command: string, row: any) {
 function submitResetPwd() {
   resetPwdFormRef.value?.validate(async (valid) => {
     if (!valid) return
-    await resetUserPwd(resetPwdForm.userId!, resetPwdForm.password)
+    await resetUserPwd({ id: resetPwdForm.id!, password: resetPwdForm.password })
     ElMessage.success('重置密码成功')
     resetPwdVisible.value = false
   })
 }
 
-function handleExport() {
-  ElMessage.info('导出功能开发中')
+async function handleExport() {
+  try {
+    await exportUser(queryParams)
+    ElMessage.success('导出成功')
+  } catch {
+    ElMessage.error('导出失败')
+  }
 }
 
 async function getRoleList() {
-  const res = await listRole()
-  roleOptions.value = res.rows || []
+  const res = await roleOptionselect()
+  roleOptions.value = res.data || []
 }
 
 onMounted(() => {

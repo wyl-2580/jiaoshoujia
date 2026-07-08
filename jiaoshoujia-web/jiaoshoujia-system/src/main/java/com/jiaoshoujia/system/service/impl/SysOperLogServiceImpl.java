@@ -47,7 +47,16 @@ public class SysOperLogServiceImpl extends ServiceImpl<SysOperLogMapper, SysOper
                 .eq(operLog.getBusinessType() != null, SysOperLog::getBusinessType, operLog.getBusinessType())
                 .like(StringUtils.isNotEmpty(operLog.getOperName()), SysOperLog::getOperName, operLog.getOperName())
                 .eq(operLog.getStatus() != null, SysOperLog::getStatus, operLog.getStatus())
+                .ge(StringUtils.isNotEmpty(operLog.getBeginTime()), SysOperLog::getOperTime, operLog.getBeginTime())
+                .le(StringUtils.isNotEmpty(operLog.getEndTime()), SysOperLog::getOperTime, endOfDay(operLog.getEndTime()))
                 .orderByDesc(SysOperLog::getOperTime);
         return wrapper;
+    }
+
+    private String endOfDay(String endTime) {
+        if (StringUtils.isEmpty(endTime) || endTime.length() > 10) {
+            return endTime;
+        }
+        return endTime + " 23:59:59";
     }
 }

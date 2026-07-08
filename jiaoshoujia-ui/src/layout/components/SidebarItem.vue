@@ -38,7 +38,7 @@ import type { RouteRecordRaw } from 'vue-router'
 import AppLink from './AppLink.vue'
 
 interface Props {
-  item: RouteRecordRaw
+  item: RouteRecordRaw & { alwaysShow?: boolean }
   basePath?: string
 }
 

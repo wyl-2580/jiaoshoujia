@@ -9,7 +9,8 @@ import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.jiaoshoujia.common.utils.SecurityUtils;
+import com.jiaoshoujia.common.exception.BusinessException;
+import com.jiaoshoujia.common.utils.MessageUtils;
 import com.jiaoshoujia.common.utils.StringUtils;
 import com.jiaoshoujia.system.domain.SysMenu;
 import com.jiaoshoujia.system.domain.SysRoleMenu;
@@ -33,14 +34,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
 
     @Override
     public Set<String> selectMenuPermsByUserId(Long userId) {
-        if (SecurityUtils.isAdmin(userId)) {
-            List<SysMenu> allMenus = lambdaQuery()
-                    .eq(SysMenu::getStatus, 0)
-                    .isNotNull(SysMenu::getPerms)
-                    .ne(SysMenu::getPerms, "")
-                    .list();
-            return allMenus.stream().map(SysMenu::getPerms).collect(Collectors.toSet());
-        }
+        // 三权分立：权限严格来自角色-菜单授权，不再存在绕过授权的"万能超管"
         List<Long> menuIds = getMenuIdsByUserId(userId);
         if (menuIds.isEmpty()) {
             return Collections.emptySet();
@@ -56,27 +50,17 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
 
     @Override
     public List<SysMenu> selectMenuTreeByUserId(Long userId) {
-        List<SysMenu> menus;
-        if (SecurityUtils.isAdmin(userId)) {
-            menus = lambdaQuery()
-                    .eq(SysMenu::getStatus, 0)
-                    .in(SysMenu::getMenuType, "M", "C")
-                    .orderByAsc(SysMenu::getParentId)
-                    .orderByAsc(SysMenu::getOrderNum)
-                    .list();
-        } else {
-            List<Long> menuIds = getMenuIdsByUserId(userId);
-            if (menuIds.isEmpty()) {
-                return Collections.emptyList();
-            }
-            menus = lambdaQuery()
-                    .in(SysMenu::getId, menuIds)
-                    .eq(SysMenu::getStatus, 0)
-                    .in(SysMenu::getMenuType, "M", "C")
-                    .orderByAsc(SysMenu::getParentId)
-                    .orderByAsc(SysMenu::getOrderNum)
-                    .list();
+        List<Long> menuIds = getMenuIdsByUserId(userId);
+        if (menuIds.isEmpty()) {
+            return Collections.emptyList();
         }
+        List<SysMenu> menus = lambdaQuery()
+                .in(SysMenu::getId, menuIds)
+                .eq(SysMenu::getStatus, 0)
+                .in(SysMenu::getMenuType, "M", "C")
+                .orderByAsc(SysMenu::getParentId)
+                .orderByAsc(SysMenu::getOrderNum)
+                .list();
         return buildMenuTree(menus);
     }
 
@@ -88,13 +72,11 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
                 .orderByAsc(SysMenu::getParentId)
                 .orderByAsc(SysMenu::getOrderNum);
 
-        if (!SecurityUtils.isAdmin(userId)) {
-            List<Long> menuIds = getMenuIdsByUserId(userId);
-            if (menuIds.isEmpty()) {
-                return Collections.emptyList();
-            }
-            wrapper.in(SysMenu::getId, menuIds);
+        List<Long> menuIds = getMenuIdsByUserId(userId);
+        if (menuIds.isEmpty()) {
+            return Collections.emptyList();
         }
+        wrapper.in(SysMenu::getId, menuIds);
         return baseMapper.selectList(wrapper);
     }
 
@@ -120,20 +102,20 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
 
     @Override
     public int insertMenu(SysMenu menu) {
-        save(menu);
-        return 1;
+        return save(menu) ? 1 : 0;
     }
 
     @Override
     public int updateMenu(SysMenu menu) {
-        updateById(menu);
-        return 1;
+        return updateById(menu) ? 1 : 0;
     }
 
     @Override
     public int deleteMenuById(Long menuId) {
-        removeById(menuId);
-        return 1;
+        if (hasChildByMenuId(menuId)) {
+            throw new BusinessException(MessageUtils.message("menu.has.children"));
+        }
+        return removeById(menuId) ? 1 : 0;
     }
 
     @Override

@@ -87,11 +87,17 @@ public class SysJobServiceImpl extends ServiceImpl<SysJobMapper, SysJob> impleme
         return 1;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public int changeStatus(SysJob job) {
         SysJob existing = getById(job.getId());
         if (existing == null) {
             throw new BusinessException("任务不存在");
+        }
+        boolean updated = lambdaUpdate().eq(SysJob::getId, job.getId())
+                .set(SysJob::getStatus, job.getStatus()).update();
+        if (!updated) {
+            return 0;
         }
         Integer newStatus = job.getStatus();
         if (newStatus != null && newStatus == 0) {
@@ -99,7 +105,6 @@ public class SysJobServiceImpl extends ServiceImpl<SysJobMapper, SysJob> impleme
         } else {
             ScheduleUtils.pauseJob(scheduler, existing.getId(), existing.getJobGroup());
         }
-        lambdaUpdate().eq(SysJob::getId, job.getId()).set(SysJob::getStatus, job.getStatus()).update();
         return 1;
     }
 

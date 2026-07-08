@@ -7,8 +7,8 @@
       </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="菜单状态" clearable>
-          <el-option label="正常" value="0" />
-          <el-option label="停用" value="1" />
+          <el-option label="正常" :value="0" />
+          <el-option label="停用" :value="1" />
         </el-select>
       </el-form-item>
       <el-form-item>
@@ -32,7 +32,7 @@
       v-if="refreshTable"
       v-loading="loading"
       :data="menuList"
-      row-key="menuId"
+      row-key="id"
       :default-expand-all="isExpandAll"
       :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
       class="data-table"
@@ -49,8 +49,8 @@
       <el-table-column prop="component" label="组件路径" show-overflow-tooltip />
       <el-table-column prop="status" label="状态" width="80" align="center">
         <template #default="{ row }">
-          <el-tag :type="row.status === '0' ? 'success' : 'danger'" size="small">
-            {{ row.status === '0' ? '正常' : '停用' }}
+          <el-tag :type="row.status === 0 ? 'success' : 'danger'" size="small">
+            {{ row.status === 0 ? '正常' : '停用' }}
           </el-tag>
         </template>
       </el-table-column>
@@ -73,7 +73,7 @@
               <el-tree-select
                 v-model="form.parentId"
                 :data="menuTree"
-                :props="{ label: 'label', value: 'id', children: 'children' }"
+                :props="({ label: 'label', value: 'id', children: 'children' } as any)"
                 placeholder="选择上级菜单"
                 check-strictly
                 style="width: 100%"
@@ -115,8 +115,8 @@
           <el-col :span="12">
             <el-form-item label="是否外链" prop="isFrame">
               <el-radio-group v-model="form.isFrame">
-                <el-radio value="0">是</el-radio>
-                <el-radio value="1">否</el-radio>
+                <el-radio :value="0">是</el-radio>
+                <el-radio :value="1">否</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -133,8 +133,8 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="路由参数" prop="query">
-              <el-input v-model="form.query" placeholder="请输入路由参数" />
+            <el-form-item label="路由参数" prop="queryParam">
+              <el-input v-model="form.queryParam" placeholder="请输入路由参数" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -149,16 +149,16 @@
           <el-col :span="12">
             <el-form-item label="显示状态" prop="visible">
               <el-radio-group v-model="form.visible">
-                <el-radio value="0">显示</el-radio>
-                <el-radio value="1">隐藏</el-radio>
+                <el-radio :value="0">显示</el-radio>
+                <el-radio :value="1">隐藏</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="菜单状态" prop="status">
               <el-radio-group v-model="form.status">
-                <el-radio value="0">正常</el-radio>
-                <el-radio value="1">停用</el-radio>
+                <el-radio :value="0">正常</el-radio>
+                <el-radio :value="1">停用</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -196,19 +196,19 @@ const queryParams = reactive({
 })
 
 const form = reactive<Record<string, any>>({
-  menuId: undefined,
+  id: undefined,
   parentId: 0,
   menuType: 'M',
   icon: '',
   menuName: '',
   orderNum: 0,
-  isFrame: '1',
+  isFrame: 1,
   path: '',
   component: '',
-  query: '',
+  queryParam: '',
   perms: '',
-  visible: '0',
-  status: '0'
+  visible: 0,
+  status: 0
 })
 
 const formRules: FormRules = {
@@ -221,13 +221,13 @@ function buildMenuTree(data: any[]): any[] {
   const map: Record<number, any> = {}
   const roots: any[] = []
   data.forEach((item) => {
-    map[item.menuId] = { ...item, children: [] }
+    map[item.id] = { ...item, children: [] }
   })
   data.forEach((item) => {
     if (item.parentId && map[item.parentId]) {
-      map[item.parentId].children.push(map[item.menuId])
+      map[item.parentId].children.push(map[item.id])
     } else {
-      roots.push(map[item.menuId])
+      roots.push(map[item.id])
     }
   })
   return roots
@@ -245,7 +245,15 @@ async function getList() {
 
 async function getMenuTreeselect() {
   const res = await treeselect()
-  menuTree.value = [{ id: 0, label: '主类目', children: res.data }]
+  menuTree.value = [{ id: 0, label: '主类目', children: toTreeSelect(res.data) }]
+}
+
+function toTreeSelect(data: any[]): any[] {
+  return data.map((item) => ({
+    id: item.id,
+    label: item.menuName,
+    children: item.children?.length ? toTreeSelect(item.children) : [],
+  }))
 }
 
 function handleQuery() {
@@ -266,26 +274,26 @@ function toggleExpandAll() {
 }
 
 function resetForm() {
-  form.menuId = undefined
+  form.id = undefined
   form.parentId = 0
   form.menuType = 'M'
   form.icon = ''
   form.menuName = ''
   form.orderNum = 0
-  form.isFrame = '1'
+  form.isFrame = 1
   form.path = ''
   form.component = ''
-  form.query = ''
+  form.queryParam = ''
   form.perms = ''
-  form.visible = '0'
-  form.status = '0'
+  form.visible = 0
+  form.status = 0
 }
 
 function handleAdd(row?: any) {
   resetForm()
   getMenuTreeselect()
   if (row) {
-    form.parentId = row.menuId
+    form.parentId = row.id
   }
   dialogTitle.value = '添加菜单'
   dialogVisible.value = true
@@ -294,7 +302,7 @@ function handleAdd(row?: any) {
 async function handleUpdate(row: any) {
   resetForm()
   await getMenuTreeselect()
-  const res = await getMenu(row.menuId)
+  const res = await getMenu(row.id)
   Object.assign(form, res.data)
   dialogTitle.value = '修改菜单'
   dialogVisible.value = true
@@ -305,7 +313,7 @@ function submitForm() {
     if (!valid) return
     submitLoading.value = true
     try {
-      if (form.menuId) {
+      if (form.id) {
         await updateMenu(form)
         ElMessage.success('修改成功')
       } else {
@@ -326,7 +334,7 @@ function handleDelete(row: any) {
     cancelButtonText: '取消',
     type: 'warning'
   }).then(async () => {
-    await deleteMenu(row.menuId)
+    await deleteMenu(row.id)
     ElMessage.success('删除成功')
     getList()
   }).catch(() => {})

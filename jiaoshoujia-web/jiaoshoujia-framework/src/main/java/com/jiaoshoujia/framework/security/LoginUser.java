@@ -24,6 +24,8 @@ public class LoginUser implements UserDetails, Serializable {
 
     private Long deptId;
 
+    private int dataScope = 5;
+
     private Set<String> permissions;
 
     private boolean accountNonLocked = true;
@@ -34,12 +36,13 @@ public class LoginUser implements UserDetails, Serializable {
     }
 
     public LoginUser(Long userId, String username, String password, Long deptId,
-                     Set<String> permissions) {
+                     Set<String> permissions, int dataScope) {
         this.userId = userId;
         this.username = username;
         this.password = password;
         this.deptId = deptId;
         this.permissions = permissions;
+        this.dataScope = dataScope;
     }
 
     @Override
@@ -117,6 +120,14 @@ public class LoginUser implements UserDetails, Serializable {
     public void setPermissions(Set<String> permissions) {
         this.permissions = permissions;
         this.authorities = null;
+    }
+
+    public int getDataScope() {
+        return dataScope;
+    }
+
+    public void setDataScope(int dataScope) {
+        this.dataScope = dataScope;
     }
 
     public void setAccountNonLocked(boolean accountNonLocked) {

@@ -231,6 +231,7 @@ CREATE TABLE sys_dict_type (
     dict_name   VARCHAR(100) NOT NULL,
     dict_type   VARCHAR(100) NOT NULL,
     status      SMALLINT     DEFAULT 0,
+    del_flag    SMALLINT     DEFAULT 0,
     create_by   VARCHAR(50)  DEFAULT '',
     create_time TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     update_by   VARCHAR(50)  DEFAULT '',
@@ -244,6 +245,7 @@ COMMENT ON COLUMN sys_dict_type.id          IS '字典ID';
 COMMENT ON COLUMN sys_dict_type.dict_name   IS '字典名称';
 COMMENT ON COLUMN sys_dict_type.dict_type   IS '字典类型';
 COMMENT ON COLUMN sys_dict_type.status      IS '状态(0正常 1停用)';
+COMMENT ON COLUMN sys_dict_type.del_flag    IS '删除标志';
 
 CREATE TRIGGER trg_sys_dict_type_update_time
     BEFORE UPDATE ON sys_dict_type
@@ -263,6 +265,7 @@ CREATE TABLE sys_dict_data (
     list_class  VARCHAR(100) DEFAULT 'default',
     is_default  SMALLINT     DEFAULT 0,
     status      SMALLINT     DEFAULT 0,
+    del_flag    SMALLINT     DEFAULT 0,
     create_by   VARCHAR(50)  DEFAULT '',
     create_time TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     update_by   VARCHAR(50)  DEFAULT '',
@@ -280,6 +283,7 @@ COMMENT ON COLUMN sys_dict_data.css_class    IS '样式属性';
 COMMENT ON COLUMN sys_dict_data.list_class   IS '表格回显样式';
 COMMENT ON COLUMN sys_dict_data.is_default   IS '是否默认(0否 1是)';
 COMMENT ON COLUMN sys_dict_data.status       IS '状态(0正常 1停用)';
+COMMENT ON COLUMN sys_dict_data.del_flag     IS '删除标志';
 
 CREATE TRIGGER trg_sys_dict_data_update_time
     BEFORE UPDATE ON sys_dict_data
@@ -331,6 +335,35 @@ COMMENT ON COLUMN sys_oper_log.cost_time       IS '消耗时间(毫秒)';
 CREATE INDEX idx_oper_log_oper_time ON sys_oper_log (oper_time);
 
 -- ----------------------------
+-- 10.1 登录日志表
+-- ----------------------------
+DROP TABLE IF EXISTS sys_login_infor CASCADE;
+CREATE TABLE sys_login_infor (
+    id             BIGSERIAL     NOT NULL,
+    user_name      VARCHAR(50)   DEFAULT '',
+    ipaddr         VARCHAR(128)  DEFAULT '',
+    login_location VARCHAR(255)  DEFAULT '',
+    browser        VARCHAR(50)   DEFAULT '',
+    os             VARCHAR(50)   DEFAULT '',
+    status         SMALLINT      DEFAULT 0,
+    msg            VARCHAR(255)  DEFAULT '',
+    login_time     TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id)
+);
+COMMENT ON TABLE  sys_login_infor                IS '登录日志表';
+COMMENT ON COLUMN sys_login_infor.id             IS '访问ID';
+COMMENT ON COLUMN sys_login_infor.user_name      IS '用户账号';
+COMMENT ON COLUMN sys_login_infor.ipaddr         IS '登录IP地址';
+COMMENT ON COLUMN sys_login_infor.login_location IS '登录地点';
+COMMENT ON COLUMN sys_login_infor.browser        IS '浏览器类型';
+COMMENT ON COLUMN sys_login_infor.os             IS '操作系统';
+COMMENT ON COLUMN sys_login_infor.status         IS '登录状态(0成功 1失败)';
+COMMENT ON COLUMN sys_login_infor.msg            IS '提示消息';
+COMMENT ON COLUMN sys_login_infor.login_time     IS '登录时间';
+
+CREATE INDEX idx_login_infor_login_time ON sys_login_infor (login_time);
+
+-- ----------------------------
 -- 11. 定时任务表
 -- ----------------------------
 DROP TABLE IF EXISTS sys_job CASCADE;
@@ -343,6 +376,7 @@ CREATE TABLE sys_job (
     misfire_policy  SMALLINT     DEFAULT 3,
     concurrent      SMALLINT     DEFAULT 1,
     status          SMALLINT     DEFAULT 0,
+    del_flag        SMALLINT     DEFAULT 0,
     create_by       VARCHAR(50)  DEFAULT '',
     create_time     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     update_by       VARCHAR(50)  DEFAULT '',
@@ -359,6 +393,7 @@ COMMENT ON COLUMN sys_job.cron_expression   IS 'cron执行表达式';
 COMMENT ON COLUMN sys_job.misfire_policy    IS '计划执行错误策略(1立即执行 2执行一次 3放弃执行)';
 COMMENT ON COLUMN sys_job.concurrent        IS '是否并发执行(0允许 1禁止)';
 COMMENT ON COLUMN sys_job.status            IS '状态(0正常 1暂停)';
+COMMENT ON COLUMN sys_job.del_flag          IS '删除标志';
 
 CREATE TRIGGER trg_sys_job_update_time
     BEFORE UPDATE ON sys_job
@@ -384,6 +419,7 @@ CREATE TABLE gen_table (
     gen_type        SMALLINT      DEFAULT 0,
     gen_path        VARCHAR(200)  DEFAULT '/',
     options         VARCHAR(1000) DEFAULT NULL,
+    del_flag        SMALLINT      DEFAULT 0,
     create_by       VARCHAR(50)   DEFAULT '',
     create_time     TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
     update_by       VARCHAR(50)   DEFAULT '',
@@ -407,6 +443,7 @@ COMMENT ON COLUMN gen_table.function_author  IS '生成功能作者';
 COMMENT ON COLUMN gen_table.gen_type         IS '生成代码方式(0zip压缩包 1自定义路径)';
 COMMENT ON COLUMN gen_table.gen_path         IS '生成路径';
 COMMENT ON COLUMN gen_table.options          IS '其它生成选项';
+COMMENT ON COLUMN gen_table.del_flag         IS '删除标志';
 
 CREATE TRIGGER trg_gen_table_update_time
     BEFORE UPDATE ON gen_table
@@ -435,6 +472,7 @@ CREATE TABLE gen_table_column (
     html_type      VARCHAR(200)  DEFAULT '',
     dict_type      VARCHAR(200)  DEFAULT '',
     sort           INT           DEFAULT 0,
+    del_flag       SMALLINT      DEFAULT 0,
     create_by      VARCHAR(50)   DEFAULT '',
     create_time    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
     update_by      VARCHAR(50)   DEFAULT '',
@@ -460,6 +498,7 @@ COMMENT ON COLUMN gen_table_column.query_type     IS '查询方式';
 COMMENT ON COLUMN gen_table_column.html_type      IS '显示类型';
 COMMENT ON COLUMN gen_table_column.dict_type      IS '字典类型';
 COMMENT ON COLUMN gen_table_column.sort           IS '排序';
+COMMENT ON COLUMN gen_table_column.del_flag       IS '删除标志';
 
 CREATE INDEX idx_gen_table_column_table_id ON gen_table_column (table_id);
 
@@ -483,23 +522,29 @@ INSERT INTO sys_dept (id, parent_id, ancestors, dept_name, order_num, leader, ph
 -- ----------------------------
 -- 用户数据  密码: admin123 => BCrypt
 -- ----------------------------
-INSERT INTO sys_user (id, username, nickname, password, status, dept_id, create_by) VALUES
-(1, 'admin', '管理员',  '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 0, 100, 'admin'),
-(2, 'user',  '普通用户', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 0, 101, 'admin');
+INSERT INTO sys_user (id, username, nickname, password, status, dept_id, remark, create_by) VALUES
+(1, 'admin',      '系统管理员', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 0, 100, '三员之系统管理员：负责用户/部门/字典/任务/代码生成', 'admin'),
+(2, 'user',       '普通用户',   '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 0, 101, '演示普通用户',                                     'admin'),
+(3, 'secadmin',   '安全管理员', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 0, 100, '三员之安全(配置)管理员：负责角色/菜单授权配置',    'admin'),
+(4, 'auditadmin', '审计管理员', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 0, 100, '三员之审计管理员：负责操作日志/登录日志审计',      'admin');
 
 -- ----------------------------
--- 角色数据
+-- 角色数据（三权分立 / 等保三员：系统管理员、安全管理员、审计管理员职责互斥）
 -- ----------------------------
-INSERT INTO sys_role (id, role_name, role_key, role_sort, data_scope, create_by) VALUES
-(1, '超级管理员', 'admin',  1, '1', 'admin'),
-(2, '普通角色',   'common', 2, '2', 'admin');
+INSERT INTO sys_role (id, role_name, role_key, role_sort, data_scope, remark, create_by) VALUES
+(1, '系统管理员', 'sysadmin',   1, '1', '系统运维与账号管理，不含授权配置与审计', 'admin'),
+(2, '普通角色',   'common',     2, '2', '演示普通角色',                           'admin'),
+(3, '安全管理员', 'secadmin',   3, '1', '角色与菜单授权配置，不含业务与审计',     'admin'),
+(4, '审计管理员', 'auditadmin', 4, '1', '操作日志与登录日志审计，不含业务与授权', 'admin');
 
 -- ----------------------------
--- 用户与角色关联
+-- 用户与角色关联（每员一角，互斥）
 -- ----------------------------
 INSERT INTO sys_user_role (user_id, role_id) VALUES
 (1, 1),
-(2, 2);
+(2, 2),
+(3, 3),
+(4, 4);
 
 -- ----------------------------
 -- 菜单数据
@@ -520,8 +565,9 @@ INSERT INTO sys_menu (id, menu_name, parent_id, order_num, path, component, menu
 
 -- 二级菜单 — 系统监控
 INSERT INTO sys_menu (id, menu_name, parent_id, order_num, path, component, menu_type, visible, status, perms, icon, create_by) VALUES
-(105, '操作日志', 2, 1, 'operlog', 'monitor/operlog/index', 'C', 0, 0, 'monitor:operlog:list', 'form',  'admin'),
-(106, '定时任务', 2, 2, 'job',     'monitor/job/index',     'C', 0, 0, 'monitor:job:list',     'job',   'admin');
+(105, '操作日志', 2, 1, 'operlog',    'monitor/operlog/index',    'C', 0, 0, 'monitor:operlog:list',    'form',  'admin'),
+(106, '定时任务', 2, 3, 'job',        'monitor/job/index',        'C', 0, 0, 'monitor:job:list',        'job',   'admin'),
+(108, '登录日志', 2, 2, 'logininfor', 'monitor/logininfor/index', 'C', 0, 0, 'monitor:logininfor:list', 'logininfor', 'admin');
 
 -- 二级菜单 — 系统工具
 INSERT INTO sys_menu (id, menu_name, parent_id, order_num, path, component, menu_type, visible, status, perms, icon, create_by) VALUES
@@ -571,7 +617,15 @@ INSERT INTO sys_menu (id, menu_name, parent_id, order_num, path, component, menu
 INSERT INTO sys_menu (id, menu_name, parent_id, order_num, path, component, menu_type, visible, status, perms, icon, create_by) VALUES
 (1026, '操作查询', 105, 1, '', NULL, 'F', 0, 0, 'monitor:operlog:query',      '#', 'admin'),
 (1027, '操作删除', 105, 2, '', NULL, 'F', 0, 0, 'monitor:operlog:remove',     '#', 'admin'),
-(1028, '日志清空', 105, 3, '', NULL, 'F', 0, 0, 'monitor:operlog:clear',      '#', 'admin');
+(1028, '日志清空', 105, 3, '', NULL, 'F', 0, 0, 'monitor:operlog:clear',      '#', 'admin'),
+(1039, '日志导出', 105, 4, '', NULL, 'F', 0, 0, 'monitor:operlog:export',     '#', 'admin');
+
+-- 登录日志按钮
+INSERT INTO sys_menu (id, menu_name, parent_id, order_num, path, component, menu_type, visible, status, perms, icon, create_by) VALUES
+(1040, '登录查询', 108, 1, '', NULL, 'F', 0, 0, 'monitor:logininfor:query',   '#', 'admin'),
+(1041, '登录删除', 108, 2, '', NULL, 'F', 0, 0, 'monitor:logininfor:remove',  '#', 'admin'),
+(1042, '日志清空', 108, 3, '', NULL, 'F', 0, 0, 'monitor:logininfor:clear',   '#', 'admin'),
+(1043, '日志导出', 108, 4, '', NULL, 'F', 0, 0, 'monitor:logininfor:export',  '#', 'admin');
 
 -- 定时任务按钮
 INSERT INTO sys_menu (id, menu_name, parent_id, order_num, path, component, menu_type, visible, status, perms, icon, create_by) VALUES
@@ -579,7 +633,8 @@ INSERT INTO sys_menu (id, menu_name, parent_id, order_num, path, component, menu
 (1030, '任务新增', 106, 2, '', NULL, 'F', 0, 0, 'monitor:job:add',            '#', 'admin'),
 (1031, '任务修改', 106, 3, '', NULL, 'F', 0, 0, 'monitor:job:edit',           '#', 'admin'),
 (1032, '任务删除', 106, 4, '', NULL, 'F', 0, 0, 'monitor:job:remove',         '#', 'admin'),
-(1033, '任务导出', 106, 5, '', NULL, 'F', 0, 0, 'monitor:job:export',         '#', 'admin');
+(1033, '任务状态', 106, 5, '', NULL, 'F', 0, 0, 'monitor:job:changeStatus',   '#', 'admin'),
+(1044, '任务执行', 106, 6, '', NULL, 'F', 0, 0, 'monitor:job:run',            '#', 'admin');
 
 -- 代码生成按钮
 INSERT INTO sys_menu (id, menu_name, parent_id, order_num, path, component, menu_type, visible, status, perms, icon, create_by) VALUES
@@ -587,22 +642,35 @@ INSERT INTO sys_menu (id, menu_name, parent_id, order_num, path, component, menu
 (1035, '生成修改', 107, 2, '', NULL, 'F', 0, 0, 'tool:gen:edit',              '#', 'admin'),
 (1036, '生成删除', 107, 3, '', NULL, 'F', 0, 0, 'tool:gen:remove',            '#', 'admin'),
 (1037, '导入代码', 107, 4, '', NULL, 'F', 0, 0, 'tool:gen:import',            '#', 'admin'),
-(1038, '预览代码', 107, 5, '', NULL, 'F', 0, 0, 'tool:gen:preview',           '#', 'admin');
+(1038, '预览代码', 107, 5, '', NULL, 'F', 0, 0, 'tool:gen:preview',           '#', 'admin'),
+(1045, '生成代码', 107, 6, '', NULL, 'F', 0, 0, 'tool:gen:code',              '#', 'admin');
 
 -- ----------------------------
--- 角色与菜单关联 — 超级管理员拥有所有菜单
+-- 角色与菜单关联 — 三权分立职责拆分
 -- ----------------------------
+-- 系统管理员(1)：用户/部门/字典 + 定时任务 + 代码生成（不含角色/菜单授权，不含日志审计）
 INSERT INTO sys_role_menu (role_id, menu_id) VALUES
 (1,1),(1,2),(1,3),
-(1,100),(1,101),(1,102),(1,103),(1,104),(1,105),(1,106),(1,107),
+(1,100),(1,103),(1,104),(1,106),(1,107),
 (1,1001),(1,1002),(1,1003),(1,1004),(1,1005),(1,1006),(1,1007),
-(1,1008),(1,1009),(1,1010),(1,1011),(1,1012),
-(1,1013),(1,1014),(1,1015),(1,1016),
 (1,1017),(1,1018),(1,1019),(1,1020),
 (1,1021),(1,1022),(1,1023),(1,1024),(1,1025),
-(1,1026),(1,1027),(1,1028),
-(1,1029),(1,1030),(1,1031),(1,1032),(1,1033),
-(1,1034),(1,1035),(1,1036),(1,1037),(1,1038);
+(1,1029),(1,1030),(1,1031),(1,1032),(1,1033),(1,1044),
+(1,1034),(1,1035),(1,1036),(1,1037),(1,1038),(1,1045);
+
+-- 安全管理员(3)：角色管理 + 菜单管理（授权配置）
+INSERT INTO sys_role_menu (role_id, menu_id) VALUES
+(3,1),
+(3,101),(3,102),
+(3,1008),(3,1009),(3,1010),(3,1011),(3,1012),
+(3,1013),(3,1014),(3,1015),(3,1016);
+
+-- 审计管理员(4)：操作日志 + 登录日志（审计，独占，其它管理员无法查看/删除）
+INSERT INTO sys_role_menu (role_id, menu_id) VALUES
+(4,2),
+(4,105),(4,108),
+(4,1026),(4,1027),(4,1028),(4,1039),
+(4,1040),(4,1041),(4,1042),(4,1043);
 
 -- ----------------------------
 -- 字典类型

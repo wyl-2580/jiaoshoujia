@@ -31,6 +31,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAppStore } from '@/store/modules/app'
 import { usePermissionStore } from '@/store/modules/permission'
+import { constantRoutes } from '@/router'
 import SidebarItem from './SidebarItem.vue'
 
 const route = useRoute()
@@ -43,7 +44,10 @@ const activeMenu = computed(() => {
   return path
 })
 
-const permissionRoutes = computed(() => permissionStore.routes)
+const permissionRoutes = computed(() => [
+  ...constantRoutes,
+  ...permissionStore.routes,
+])
 </script>
 
 <style lang="scss" scoped>

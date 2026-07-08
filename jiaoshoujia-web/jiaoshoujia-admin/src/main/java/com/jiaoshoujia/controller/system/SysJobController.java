@@ -22,51 +22,51 @@ public class SysJobController {
 
     private static final int MAX_PAGE_SIZE = 100;
 
-    @PreAuthorize("hasAuthority('system:job:list')")
+    @PreAuthorize("hasAuthority('monitor:job:list')")
     @GetMapping("/list")
     public R<PageResult<SysJob>> list(SysJob job,
-                                      @RequestParam(defaultValue = "1") Integer pageNum,
-                                      @RequestParam(defaultValue = "10") Integer pageSize) {
+                                      @RequestParam(name = "pageNum", defaultValue = "1") Integer pageNum,
+                                      @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
         Page<SysJob> page = new Page<>(pageNum, Math.min(pageSize, MAX_PAGE_SIZE));
         Page<SysJob> result = jobService.selectJobPage(page, job);
         return R.ok(PageResult.of(result.getTotal(), result.getRecords()));
     }
 
-    @PreAuthorize("hasAuthority('system:job:query')")
+    @PreAuthorize("hasAuthority('monitor:job:query')")
     @GetMapping("/{jobId}")
-    public R<SysJob> getInfo(@PathVariable Long jobId) {
+    public R<SysJob> getInfo(@PathVariable(name = "jobId") Long jobId) {
         return R.ok(jobService.selectJobById(jobId));
     }
 
-    @PreAuthorize("hasAuthority('system:job:add')")
+    @PreAuthorize("hasAuthority('monitor:job:add')")
     @Log(title = "定时任务", businessType = BusinessType.INSERT)
     @PostMapping
     public R<Void> add(@RequestBody SysJob job) {
         return jobService.insertJob(job) > 0 ? R.ok() : R.fail();
     }
 
-    @PreAuthorize("hasAuthority('system:job:edit')")
+    @PreAuthorize("hasAuthority('monitor:job:edit')")
     @Log(title = "定时任务", businessType = BusinessType.UPDATE)
     @PutMapping
     public R<Void> edit(@RequestBody SysJob job) {
         return jobService.updateJob(job) > 0 ? R.ok() : R.fail();
     }
 
-    @PreAuthorize("hasAuthority('system:job:remove')")
+    @PreAuthorize("hasAuthority('monitor:job:remove')")
     @Log(title = "定时任务", businessType = BusinessType.DELETE)
     @DeleteMapping("/{jobIds}")
-    public R<Void> remove(@PathVariable Long[] jobIds) {
+    public R<Void> remove(@PathVariable(name = "jobIds") Long[] jobIds) {
         return jobService.deleteJobByIds(jobIds) > 0 ? R.ok() : R.fail();
     }
 
-    @PreAuthorize("hasAuthority('system:job:changeStatus')")
+    @PreAuthorize("hasAuthority('monitor:job:changeStatus')")
     @Log(title = "定时任务", businessType = BusinessType.UPDATE)
     @PutMapping("/changeStatus")
     public R<Void> changeStatus(@RequestBody SysJob job) {
         return jobService.changeStatus(job) > 0 ? R.ok() : R.fail();
     }
 
-    @PreAuthorize("hasAuthority('system:job:run')")
+    @PreAuthorize("hasAuthority('monitor:job:run')")
     @Log(title = "定时任务", businessType = BusinessType.UPDATE)
     @PutMapping("/run")
     public R<Void> run(@RequestBody SysJob job) {

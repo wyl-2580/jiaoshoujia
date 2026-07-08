@@ -15,7 +15,7 @@
         :model="loginForm"
         :rules="loginRules"
         class="login-form"
-        @keyup.enter="handleLogin"
+        @keyup.enter.prevent="handleLogin"
       >
         <el-form-item prop="username">
           <el-input
@@ -50,6 +50,7 @@
             size="large"
             class="login-button"
             :loading="loading"
+            :disabled="loading"
             @click="handleLogin"
           >
             <span v-if="!loading">登 录</span>
@@ -66,7 +67,7 @@ import { ref, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { User, Lock, View, Hide } from '@element-plus/icons-vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { useUserStore } from '@/stores/user'
+import { useUserStore } from '@/store/modules/user'
 import Cookies from 'js-cookie'
 
 const router = useRouter()
@@ -102,6 +103,7 @@ function getCookieData() {
 }
 
 function handleLogin() {
+  if (loading.value) return
   loginFormRef.value?.validate(async (valid) => {
     if (!valid) return
     loading.value = true
@@ -122,8 +124,8 @@ function handleLogin() {
       const redirect = (route.query.redirect as string) || '/'
       router.push(redirect)
       ElMessage.success('登录成功')
-    } catch (error: any) {
-      ElMessage.error(error?.message || '登录失败')
+    } catch {
+      // 请求拦截器已统一提示错误，避免登录页重复弹窗。
     } finally {
       loading.value = false
     }

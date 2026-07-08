@@ -70,7 +70,7 @@ public class FileController {
     }
 
     @GetMapping("/download")
-    public void download(@RequestParam String fileName, HttpServletResponse response) {
+    public void download(@RequestParam(name = "fileName") String fileName, HttpServletResponse response) {
         if (StringUtils.isEmpty(fileName) || fileName.contains("..")) {
             throw new IllegalArgumentException("文件名不合法");
         }

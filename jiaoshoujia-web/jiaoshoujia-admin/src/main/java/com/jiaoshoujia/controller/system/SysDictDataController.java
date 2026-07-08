@@ -27,8 +27,8 @@ public class SysDictDataController {
     @PreAuthorize("hasAuthority('system:dict:list')")
     @GetMapping("/list")
     public R<PageResult<SysDictData>> list(SysDictData dictData,
-                                            @RequestParam(defaultValue = "1") Integer pageNum,
-                                            @RequestParam(defaultValue = "10") Integer pageSize) {
+                                            @RequestParam(name = "pageNum", defaultValue = "1") Integer pageNum,
+                                            @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
         Page<SysDictData> page = new Page<>(pageNum, Math.min(pageSize, MAX_PAGE_SIZE));
         Page<SysDictData> result = dictDataService.selectDictDataPage(page, dictData);
         return R.ok(PageResult.of(result.getTotal(), result.getRecords()));
@@ -36,12 +36,12 @@ public class SysDictDataController {
 
     @PreAuthorize("hasAuthority('system:dict:query')")
     @GetMapping("/{dictCode}")
-    public R<SysDictData> getInfo(@PathVariable Long dictCode) {
+    public R<SysDictData> getInfo(@PathVariable(name = "dictCode") Long dictCode) {
         return R.ok(dictDataService.selectDictDataById(dictCode));
     }
 
     @GetMapping("/type/{dictType}")
-    public R<List<SysDictData>> dictType(@PathVariable String dictType) {
+    public R<List<SysDictData>> dictType(@PathVariable(name = "dictType") String dictType) {
         return R.ok(dictDataService.selectDictDataByType(dictType));
     }
 
@@ -62,7 +62,7 @@ public class SysDictDataController {
     @PreAuthorize("hasAuthority('system:dict:remove')")
     @Log(title = "字典数据", businessType = BusinessType.DELETE)
     @DeleteMapping("/{dictCodes}")
-    public R<Void> remove(@PathVariable Long[] dictCodes) {
+    public R<Void> remove(@PathVariable(name = "dictCodes") Long[] dictCodes) {
         return dictDataService.deleteDictDataByIds(dictCodes) > 0 ? R.ok() : R.fail();
     }
 }

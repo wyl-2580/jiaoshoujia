@@ -108,6 +108,25 @@ public class GenTableServiceImpl implements IGenTableService {
     }
 
     @Override
+    public Map<String, String> previewCode(Long tableId) {
+        GenTable table = selectGenTableById(tableId);
+        if (table == null) {
+            throw new IllegalArgumentException("表信息不存在: " + tableId);
+        }
+
+        VelocityEngine engine = VelocityUtils.initVelocityEngine();
+        VelocityContext context = VelocityUtils.prepareContext(table);
+        Map<String, String> preview = new LinkedHashMap<>();
+        for (String templatePath : VelocityUtils.getTemplateList()) {
+            StringWriter sw = new StringWriter();
+            Template tpl = engine.getTemplate(templatePath, "UTF-8");
+            tpl.merge(context, sw);
+            preview.put(VelocityUtils.getFileName(templatePath, table), sw.toString());
+        }
+        return preview;
+    }
+
+    @Override
     public byte[] generateCode(Long tableId) {
         GenTable table = selectGenTableById(tableId);
         if (table == null) {

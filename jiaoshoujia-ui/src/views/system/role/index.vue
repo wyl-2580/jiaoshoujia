@@ -10,8 +10,8 @@
       </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="角色状态" clearable>
-          <el-option label="正常" value="0" />
-          <el-option label="停用" value="1" />
+          <el-option label="正常" :value="0" />
+          <el-option label="停用" :value="1" />
         </el-select>
       </el-form-item>
       <el-form-item label="创建时间" prop="dateRange">
@@ -49,7 +49,7 @@
     <!-- Table -->
     <el-table v-loading="loading" :data="roleList" @selection-change="handleSelectionChange" class="data-table">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="角色编号" prop="roleId" width="100" align="center" />
+      <el-table-column label="角色编号" prop="id" width="100" align="center" />
       <el-table-column label="角色名称" prop="roleName" show-overflow-tooltip />
       <el-table-column label="权限字符" prop="roleKey" show-overflow-tooltip />
       <el-table-column label="显示顺序" prop="roleSort" width="100" align="center" />
@@ -57,8 +57,8 @@
         <template #default="{ row }">
           <el-switch
             v-model="row.status"
-            active-value="0"
-            inactive-value="1"
+            :active-value="0"
+            :inactive-value="1"
             @change="handleStatusChange(row)"
           />
         </template>
@@ -106,8 +106,8 @@
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">
-            <el-radio value="0">正常</el-radio>
-            <el-radio value="1">停用</el-radio>
+            <el-radio :value="0">正常</el-radio>
+            <el-radio :value="1">停用</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="数据权限" prop="dataScope">
@@ -118,6 +118,23 @@
             <el-option label="本部门及以下数据权限" value="4" />
             <el-option label="仅本人数据权限" value="5" />
           </el-select>
+        </el-form-item>
+        <el-form-item label="数据权限" v-show="form.dataScope === '2'">
+          <div class="menu-tree-header">
+            <el-checkbox v-model="deptExpand" @change="handleDeptExpand">展开/折叠</el-checkbox>
+            <el-checkbox v-model="deptNodeAll" @change="handleDeptNodeAll">全选/全不选</el-checkbox>
+            <el-checkbox v-model="deptCheckStrictly">父子联动</el-checkbox>
+          </div>
+          <el-tree
+            ref="deptTreeRef"
+            class="tree-border"
+            :data="deptOptions"
+            show-checkbox
+            node-key="id"
+            :check-strictly="!deptCheckStrictly"
+            :props="{ label: 'label', children: 'children' }"
+            empty-text="加载中，请稍候"
+          />
         </el-form-item>
         <el-form-item label="菜单权限">
           <div class="menu-tree-header">
@@ -149,11 +166,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import { Search, Refresh, Plus, Edit, Delete, Download, QuestionFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { listRole, getRole, addRole, updateRole, deleteRole, changeRoleStatus } from '@/api/system/role'
+import { listRole, getRole, addRole, updateRole, deleteRole, changeRoleStatus, exportRole } from '@/api/system/role'
 import { treeselect as menuTreeselect } from '@/api/system/menu'
+import { deptTreeselect } from '@/api/system/dept'
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -170,6 +188,11 @@ const menuExpand = ref(false)
 const menuNodeAll = ref(false)
 const menuCheckStrictly = ref(true)
 const menuTreeRef = ref<any>(null)
+const deptOptions = ref<any[]>([])
+const deptExpand = ref(true)
+const deptNodeAll = ref(false)
+const deptCheckStrictly = ref(true)
+const deptTreeRef = ref<any>(null)
 
 const queryFormRef = ref<FormInstance>()
 const formRef = ref<FormInstance>()
@@ -185,13 +208,14 @@ const queryParams = reactive({
 })
 
 const form = reactive<Record<string, any>>({
-  roleId: undefined,
+  id: undefined,
   roleName: '',
   roleKey: '',
   roleSort: 0,
-  status: '0',
+  status: 0,
   dataScope: '1',
   menuIds: [],
+  deptIds: [],
   remark: ''
 })
 
@@ -221,7 +245,28 @@ async function getList() {
 
 async function getMenuTree() {
   const res = await menuTreeselect()
-  menuOptions.value = res.data
+  menuOptions.value = toTreeSelect(res.data)
+}
+
+async function getDeptTree() {
+  const res = await deptTreeselect()
+  deptOptions.value = toDeptTreeSelect(res.data)
+}
+
+function toDeptTreeSelect(data: any[]): any[] {
+  return data.map((item) => ({
+    id: item.id,
+    label: item.deptName,
+    children: item.children?.length ? toDeptTreeSelect(item.children) : [],
+  }))
+}
+
+function toTreeSelect(data: any[]): any[] {
+  return data.map((item) => ({
+    id: item.id,
+    label: item.menuName,
+    children: item.children?.length ? toTreeSelect(item.children) : [],
+  }))
 }
 
 function handleQuery() {
@@ -236,36 +281,39 @@ function resetQuery() {
 }
 
 function handleSelectionChange(selection: any[]) {
-  ids.value = selection.map((item) => item.roleId)
+  ids.value = selection.map((item) => item.id)
   single.value = selection.length !== 1
   multiple.value = !selection.length
 }
 
 function resetForm() {
-  form.roleId = undefined
+  form.id = undefined
   form.roleName = ''
   form.roleKey = ''
   form.roleSort = 0
-  form.status = '0'
+  form.status = 0
   form.dataScope = '1'
   form.menuIds = []
+  form.deptIds = []
   form.remark = ''
 }
 
 function handleAdd() {
   resetForm()
   getMenuTree()
+  getDeptTree()
   dialogTitle.value = '添加角色'
   dialogVisible.value = true
   nextTick(() => {
     menuTreeRef.value?.setCheckedKeys([])
+    deptTreeRef.value?.setCheckedKeys([])
   })
 }
 
 async function handleUpdate(row?: any) {
   resetForm()
-  await getMenuTree()
-  const roleId = row?.roleId || ids.value[0]
+  await Promise.all([getMenuTree(), getDeptTree()])
+  const roleId = row?.id || ids.value[0]
   const res = await getRole(roleId)
   Object.assign(form, res.data)
   dialogTitle.value = '修改角色'
@@ -273,6 +321,8 @@ async function handleUpdate(row?: any) {
   nextTick(() => {
     const checkedMenuIds = res.data.menuIds || []
     menuTreeRef.value?.setCheckedKeys(checkedMenuIds)
+    const checkedDeptIds = res.data.deptIds || []
+    deptTreeRef.value?.setCheckedKeys(checkedDeptIds)
   })
 }
 
@@ -282,7 +332,8 @@ function submitForm() {
     submitLoading.value = true
     try {
       form.menuIds = getMenuAllCheckedKeys()
-      if (form.roleId) {
+      form.deptIds = getDeptAllCheckedKeys()
+      if (form.id) {
         await updateRole(form)
         ElMessage.success('修改成功')
       } else {
@@ -304,7 +355,7 @@ function getMenuAllCheckedKeys() {
 }
 
 function handleDelete(row?: any) {
-  const roleIds = row?.roleId ? [row.roleId] : ids.value
+  const roleIds = row?.id ? [row.id] : ids.value
   ElMessageBox.confirm(`是否确认删除角色编号为"${roleIds}"的数据项？`, '警告', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
@@ -317,29 +368,51 @@ function handleDelete(row?: any) {
 }
 
 async function handleStatusChange(row: any) {
-  const text = row.status === '0' ? '启用' : '停用'
+  const text = row.status === 0 ? '启用' : '停用'
   try {
     await ElMessageBox.confirm(`确认要${text}"${row.roleName}"角色吗？`, '警告', { type: 'warning' })
-    await changeRoleStatus(row.roleId, row.status)
+    await changeRoleStatus({ id: row.id, status: row.status })
     ElMessage.success(`${text}成功`)
   } catch {
-    row.status = row.status === '0' ? '1' : '0'
+    row.status = row.status === 0 ? 1 : 0
   }
 }
 
-function handleMenuExpand(val: boolean) {
+function getDeptAllCheckedKeys() {
+  const checked = deptTreeRef.value?.getCheckedKeys() || []
+  const half = deptTreeRef.value?.getHalfCheckedKeys() || []
+  return [...checked, ...half]
+}
+
+function handleDeptExpand(val: any) {
+  const nodes = deptTreeRef.value?.store.nodesMap
+  for (const node in nodes) {
+    nodes[node].expanded = val
+  }
+}
+
+function handleDeptNodeAll(val: any) {
+  deptTreeRef.value?.setCheckedNodes(val ? deptOptions.value : [])
+}
+
+function handleMenuExpand(val: any) {
   const nodes = menuTreeRef.value?.store.nodesMap
   for (const node in nodes) {
     nodes[node].expanded = val
   }
 }
 
-function handleMenuNodeAll(val: boolean) {
+function handleMenuNodeAll(val: any) {
   menuTreeRef.value?.setCheckedNodes(val ? menuOptions.value : [])
 }
 
-function handleExport() {
-  ElMessage.info('导出功能开发中')
+async function handleExport() {
+  try {
+    await exportRole(queryParams)
+    ElMessage.success('导出成功')
+  } catch {
+    ElMessage.error('导出失败')
+  }
 }
 
 onMounted(() => {

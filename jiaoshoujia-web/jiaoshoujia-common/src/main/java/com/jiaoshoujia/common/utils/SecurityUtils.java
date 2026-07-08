@@ -43,8 +43,12 @@ public final class SecurityUtils {
         throw new UnauthorizedException(MessageUtils.message("auth.userid.not.found"));
     }
 
+    /**
+     * 是否为内置的三员账号（系统管理员=1、安全管理员=3、审计管理员=4）。
+     * 三员账号受保护，不允许被删除 / 停用 / 越权重置密码，以保障三权分立不被破坏。
+     */
     public static boolean isAdmin(Long userId) {
-        return userId != null && userId == 1L;
+        return userId != null && (userId == 1L || userId == 3L || userId == 4L);
     }
 
     public static String encryptPassword(String password) {

@@ -78,6 +78,12 @@
                 <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
+            <!-- MyBatis-Plus 3.5.9+ 已将 jsqlparser 相关(分页/SQL解析拦截器)拆分为独立模块 -->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-jsqlparser</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
 
             <!-- Knife4j (OpenAPI 3) -->
             <dependency>

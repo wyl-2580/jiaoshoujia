@@ -38,7 +38,7 @@ class JwtTokenProviderTest {
     }
 
     private LoginUser createLoginUser() {
-        return new LoginUser(1L, "admin", "password", 100L, Set.of("system:user:list"));
+        return new LoginUser(1L, "admin", "password", 100L, Set.of("system:user:list"), 1);
     }
 
     @Test

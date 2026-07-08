@@ -41,6 +41,12 @@ public abstract class BaseEntity implements Serializable {
     @TableField(exist = false)
     private Map<String, Object> params = new HashMap<>();
 
+    @TableField(exist = false)
+    private String beginTime;
+
+    @TableField(exist = false)
+    private String endTime;
+
     public Long getId() {
         return id;
     }
@@ -106,5 +112,21 @@ public abstract class BaseEntity implements Serializable {
 
     public void setParams(Map<String, Object> params) {
         this.params = params;
+    }
+
+    public String getBeginTime() {
+        return beginTime;
+    }
+
+    public void setBeginTime(String beginTime) {
+        this.beginTime = beginTime;
+    }
+
+    public String getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(String endTime) {
+        this.endTime = endTime;
     }
 }

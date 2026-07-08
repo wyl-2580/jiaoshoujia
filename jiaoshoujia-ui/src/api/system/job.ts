@@ -5,18 +5,18 @@ export interface JobQuery {
   pageSize?: number
   jobName?: string
   jobGroup?: string
-  status?: string
+  status?: number | string
 }
 
 export interface JobForm {
-  jobId?: number
+  id?: number
   jobName?: string
   jobGroup?: string
   invokeTarget?: string
   cronExpression?: string
-  misfirePolicy?: string
-  concurrent?: string
-  status?: string
+  misfirePolicy?: number | string
+  concurrent?: number | string
+  status?: number | string
   remark?: string
 }
 
@@ -40,10 +40,10 @@ export function deleteJob(jobIds: string) {
   return del(`/api/system/job/${jobIds}`)
 }
 
-export function changeJobStatus(data: { jobId: number; status: string }) {
+export function changeJobStatus(data: { id: number; status: number | string }) {
   return put('/api/system/job/changeStatus', data)
 }
 
-export function runJob(data: { jobId: number; jobGroup: string }) {
+export function runJob(data: { id: number; jobGroup: string }) {
   return put('/api/system/job/run', data)
 }

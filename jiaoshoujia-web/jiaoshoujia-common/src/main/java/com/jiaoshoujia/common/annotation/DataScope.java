@@ -13,5 +13,9 @@ public @interface DataScope {
 
     String deptAlias() default "";
 
+    String deptColumn() default "dept_id";
+
     String userAlias() default "";
+
+    String userColumn() default "user_id";
 }

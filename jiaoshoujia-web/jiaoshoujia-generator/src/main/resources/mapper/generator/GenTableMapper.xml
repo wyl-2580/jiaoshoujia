@@ -11,7 +11,7 @@
         <result property="moduleName" column="module_name"/>
         <result property="businessName" column="business_name"/>
         <result property="functionName" column="function_name"/>
-        <result property="author" column="author"/>
+        <result property="author" column="function_author"/>
         <result property="genType" column="gen_type"/>
         <result property="genPath" column="gen_path"/>
         <result property="createBy" column="create_by"/>
@@ -44,7 +44,7 @@
 
     <select id="selectGenTableById" parameterType="Long" resultMap="GenTableResult">
         SELECT id, table_name, table_comment, class_name, package_name, module_name,
-               business_name, function_name, author, gen_type, gen_path,
+               business_name, function_name, function_author, gen_type, gen_path,
                create_by, create_time, update_by, update_time, remark
         FROM gen_table
         WHERE id = #{id}

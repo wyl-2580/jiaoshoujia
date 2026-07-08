@@ -6,15 +6,15 @@ export interface LoginData {
 }
 
 export interface LoginResult {
-  token: string
-  refreshToken?: string
+  access_token: string
+  refresh_token?: string
 }
 
 export interface UserInfo {
   user: {
-    userId: number
-    userName: string
-    nickName: string
+    id: number
+    username: string
+    nickname: string
     avatar: string
     deptId: number
   }
@@ -39,13 +39,17 @@ export function getRouters() {
 }
 
 export function refreshToken(refreshToken: string) {
-  return post<LoginResult>('/api/auth/refresh', { refreshToken })
+  return post<LoginResult>('/api/auth/refresh', { refresh_token: refreshToken })
 }
 
 export interface RouteMenu {
-  name: string
+  name?: string
+  menuName?: string
   path: string
-  hidden: boolean
+  hidden?: boolean
+  visible?: number
+  icon?: string
+  menuType?: string
   redirect?: string
   component: string
   alwaysShow?: boolean

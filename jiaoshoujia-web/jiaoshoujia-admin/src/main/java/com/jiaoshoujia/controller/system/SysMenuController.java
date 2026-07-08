@@ -30,7 +30,7 @@ public class SysMenuController {
 
     @PreAuthorize("hasAuthority('system:menu:query')")
     @GetMapping("/{menuId}")
-    public R<SysMenu> getInfo(@PathVariable Long menuId) {
+    public R<SysMenu> getInfo(@PathVariable(name = "menuId") Long menuId) {
         return R.ok(menuService.selectMenuById(menuId));
     }
 
@@ -58,7 +58,7 @@ public class SysMenuController {
     @PreAuthorize("hasAuthority('system:menu:remove')")
     @Log(title = "菜单管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{menuId}")
-    public R<Void> remove(@PathVariable Long menuId) {
+    public R<Void> remove(@PathVariable(name = "menuId") Long menuId) {
         return menuService.deleteMenuById(menuId) > 0 ? R.ok() : R.fail();
     }
 }

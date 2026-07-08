@@ -18,7 +18,7 @@
     </el-row>
 
     <el-row :gutter="20" class="stat-row">
-      <el-col :xs="24" :sm="12" :lg="6" v-for="item in statCards" :key="item.title">
+      <el-col :xs="24" :sm="12" :lg="6" v-for="item in visibleStatCards" :key="item.title">
         <el-card class="stat-card" shadow="hover" :style="{ borderLeft: `4px solid ${item.color}` }">
           <div class="stat-content">
             <div class="stat-info">
@@ -34,7 +34,7 @@
     </el-row>
 
     <el-row :gutter="20">
-      <el-col :xs="24" :lg="16">
+      <el-col :xs="24" :lg="16" v-if="showOperlog">
         <el-card class="section-card" shadow="hover">
           <template #header>
             <div class="card-header">
@@ -87,13 +87,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import type { RouteRecordRaw } from 'vue-router'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/user'
-import { UserFilled, Avatar, Menu, OfficeBuilding, Setting, Document, Timer, Key } from '@element-plus/icons-vue'
+import { useUserStore } from '@/store/modules/user'
+import { usePermissionStore } from '@/store/modules/permission'
+import { UserFilled, Avatar, Menu, OfficeBuilding, Document, Timer, Key } from '@element-plus/icons-vue'
+import { listOperlog } from '@/api/system/operlog'
+import { get } from '@/utils/request'
 
 const router = useRouter()
 const userStore = useUserStore()
+const permissionStore = usePermissionStore()
 
 const username = computed(() => userStore.name || '管理员')
 
@@ -115,31 +120,134 @@ const currentWeek = computed(() => {
   return weeks[new Date().getDay()]
 })
 
-const statCards = [
-  { title: '用户数量', value: 256, icon: UserFilled, color: '#409EFF' },
-  { title: '角色数量', value: 12, icon: Key, color: '#67C23A' },
-  { title: '菜单数量', value: 48, icon: Menu, color: '#E6A23C' },
-  { title: '部门数量', value: 8, icon: OfficeBuilding, color: '#F56C6C' }
-]
+const statCards = ref([
+  { title: '用户数量', value: 0, icon: UserFilled, color: '#409EFF' },
+  { title: '角色数量', value: 0, icon: Key, color: '#67C23A' },
+  { title: '菜单数量', value: 0, icon: Menu, color: '#E6A23C' },
+  { title: '部门数量', value: 0, icon: OfficeBuilding, color: '#F56C6C' },
+])
 
-const recentOperations = [
-  { module: '用户管理', action: '新增', tagType: 'success', operator: 'admin', time: '2025-01-15 10:30:00', status: '成功' },
-  { module: '角色管理', action: '修改', tagType: 'warning', operator: 'admin', time: '2025-01-15 09:20:00', status: '成功' },
-  { module: '菜单管理', action: '删除', tagType: 'danger', operator: 'admin', time: '2025-01-14 16:45:00', status: '成功' },
-  { module: '部门管理', action: '新增', tagType: 'success', operator: 'admin', time: '2025-01-14 14:10:00', status: '成功' },
-  { module: '字典管理', action: '修改', tagType: 'warning', operator: 'admin', time: '2025-01-14 11:00:00', status: '失败' }
-]
+const recentOperations = ref<any[]>([])
 
-const shortcuts = [
+const businessTypeMap: Record<number, { label: string; tagType: string }> = {
+  1: { label: '新增', tagType: 'success' },
+  2: { label: '修改', tagType: 'warning' },
+  3: { label: '删除', tagType: 'danger' },
+  4: { label: '授权', tagType: '' },
+  5: { label: '导出', tagType: 'info' },
+  6: { label: '导入', tagType: 'info' },
+  7: { label: '强退', tagType: 'danger' },
+  8: { label: '清空', tagType: 'danger' },
+}
+
+function formatTime(time: string) {
+  if (!time) return ''
+  return time.replace('T', ' ').substring(0, 19)
+}
+
+function hasPerms(perm: string) {
+  const perms = userStore.permissions
+  return perms.includes('*:*:*') || perms.includes(perm)
+}
+
+const showOperlog = computed(() => hasPerms('monitor:operlog:list'))
+
+const statPermMap = ['system:user:list', 'system:role:list', 'system:menu:list', 'system:dept:list']
+const visibleStatCards = computed(() =>
+  statCards.value.filter((_, i) => hasPerms(statPermMap[i])),
+)
+
+async function loadRecentOperations() {
+  if (!hasPerms('monitor:operlog:list')) return
+  try {
+    const res = await listOperlog({ pageNum: 1, pageSize: 8 })
+    recentOperations.value = (res.rows || []).map((item: any) => {
+      const bt = businessTypeMap[item.businessType] || { label: '其他', tagType: 'info' }
+      return {
+        module: item.title,
+        action: bt.label,
+        tagType: bt.tagType,
+        operator: item.operName,
+        time: formatTime(item.operTime),
+        status: item.status === 0 ? '成功' : '失败',
+      }
+    })
+  } catch {
+    recentOperations.value = []
+  }
+}
+
+async function loadStats() {
+  const requests: Promise<any>[] = []
+  const indices: number[] = []
+
+  if (hasPerms('system:user:list')) {
+    indices.push(0)
+    requests.push(get('/api/system/user/list', { pageNum: 1, pageSize: 1 }))
+  }
+  if (hasPerms('system:role:list')) {
+    indices.push(1)
+    requests.push(get('/api/system/role/list', { pageNum: 1, pageSize: 1 }))
+  }
+  if (hasPerms('system:menu:list')) {
+    indices.push(2)
+    requests.push(get('/api/system/menu/list'))
+  }
+  if (hasPerms('system:dept:list')) {
+    indices.push(3)
+    requests.push(get('/api/system/dept/list'))
+  }
+
+  if (requests.length === 0) return
+
+  try {
+    const results = await Promise.all(requests)
+    results.forEach((res, i) => {
+      const idx = indices[i]
+      if (idx === 0 || idx === 1) {
+        statCards.value[idx].value = res.total || 0
+      } else {
+        statCards.value[idx].value = Array.isArray(res.data) ? res.data.length : 0
+      }
+    })
+  } catch {
+    // keep default 0
+  }
+}
+
+onMounted(() => {
+  loadRecentOperations()
+  loadStats()
+})
+
+const shortcutOptions = [
   { title: '用户管理', icon: UserFilled, color: '#409EFF', path: '/system/user' },
   { title: '角色管理', icon: Key, color: '#67C23A', path: '/system/role' },
   { title: '菜单管理', icon: Menu, color: '#E6A23C', path: '/system/menu' },
   { title: '部门管理', icon: OfficeBuilding, color: '#F56C6C', path: '/system/dept' },
   { title: '字典管理', icon: Document, color: '#909399', path: '/system/dict' },
-  { title: '系统设置', icon: Setting, color: '#9B59B6', path: '/system/config' },
   { title: '定时任务', icon: Timer, color: '#1ABC9C', path: '/monitor/job' },
-  { title: '操作日志', icon: Avatar, color: '#E74C3C', path: '/monitor/operlog' }
+  { title: '登录日志', icon: UserFilled, color: '#9B59B6', path: '/monitor/logininfor' },
+  { title: '操作日志', icon: Avatar, color: '#E74C3C', path: '/monitor/operlog' },
 ]
+
+function joinRoutePath(parentPath: string, childPath: string) {
+  if (childPath.startsWith('/')) return childPath
+  const parent = parentPath.replace(/\/$/, '')
+  return `${parent}/${childPath}`.replace(/\/+/g, '/')
+}
+
+function collectRoutePaths(routes: RouteRecordRaw[], parentPath = ''): string[] {
+  return routes.flatMap((route) => {
+    const path = joinRoutePath(parentPath, route.path)
+    const childPaths = route.children ? collectRoutePaths(route.children, path) : []
+    return [path, ...childPaths]
+  })
+}
+
+const availableRoutePaths = computed(() => new Set(collectRoutePaths(permissionStore.routes)))
+
+const shortcuts = computed(() => shortcutOptions.filter((item) => availableRoutePaths.value.has(item.path)))
 </script>
 
 <style scoped lang="scss">

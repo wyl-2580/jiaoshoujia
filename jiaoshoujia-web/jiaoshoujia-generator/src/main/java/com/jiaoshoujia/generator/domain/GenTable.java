@@ -23,6 +23,7 @@ public class GenTable extends BaseEntity {
 
     private String functionName;
 
+    @TableField("function_author")
     private String author;
 
     /** 生成类型（0=zip压缩包，1=自定义路径） */

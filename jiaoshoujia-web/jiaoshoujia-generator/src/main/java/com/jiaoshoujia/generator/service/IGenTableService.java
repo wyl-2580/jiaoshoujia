@@ -15,6 +15,8 @@ public interface IGenTableService {
 
     void importTable(String[] tableNames);
 
+    Map<String, String> previewCode(Long tableId);
+
     byte[] generateCode(Long tableId);
 
     void deleteGenTableByIds(Long[] ids);

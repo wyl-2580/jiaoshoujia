@@ -29,16 +29,23 @@ public class SysDeptController {
 
     @PreAuthorize("hasAuthority('system:dept:list')")
     @GetMapping("/list/exclude/{deptId}")
-    public R<List<SysDept>> excludeChild(@PathVariable Long deptId) {
+    public R<List<SysDept>> excludeChild(@PathVariable(name = "deptId") Long deptId) {
         List<SysDept> depts = deptService.selectDeptList(new SysDept());
+        String idStr = String.valueOf(deptId);
         depts.removeIf(d -> d.getId().equals(deptId)
-                || (d.getAncestors() != null && d.getAncestors().contains(String.valueOf(deptId))));
+                || (d.getAncestors() != null && java.util.Arrays.asList(d.getAncestors().split(",")).contains(idStr)));
         return R.ok(depts);
+    }
+
+    @GetMapping("/treeselect")
+    public R<List<SysDept>> treeselect(SysDept dept) {
+        List<SysDept> depts = deptService.selectDeptList(dept);
+        return R.ok(deptService.buildDeptTree(depts));
     }
 
     @PreAuthorize("hasAuthority('system:dept:query')")
     @GetMapping("/{deptId}")
-    public R<SysDept> getInfo(@PathVariable Long deptId) {
+    public R<SysDept> getInfo(@PathVariable(name = "deptId") Long deptId) {
         return R.ok(deptService.selectDeptById(deptId));
     }
 
@@ -59,7 +66,7 @@ public class SysDeptController {
     @PreAuthorize("hasAuthority('system:dept:remove')")
     @Log(title = "部门管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{deptId}")
-    public R<Void> remove(@PathVariable Long deptId) {
+    public R<Void> remove(@PathVariable(name = "deptId") Long deptId) {
         return deptService.deleteDeptById(deptId) > 0 ? R.ok() : R.fail();
     }
 }

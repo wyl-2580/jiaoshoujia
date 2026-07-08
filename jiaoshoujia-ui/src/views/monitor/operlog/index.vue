@@ -41,7 +41,7 @@
         <el-button type="danger" plain :icon="Delete" :disabled="multiple" @click="handleDelete()" v-hasPermi="['monitor:operlog:remove']">删除</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="danger" plain :icon="Delete" @click="handleClean" v-hasPermi="['monitor:operlog:remove']">清空</el-button>
+        <el-button type="danger" plain :icon="Delete" @click="handleClean" v-hasPermi="['monitor:operlog:clear']">清空</el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button type="warning" plain :icon="Download" @click="handleExport" v-hasPermi="['monitor:operlog:export']">导出</el-button>
@@ -51,7 +51,7 @@
     <!-- Table -->
     <el-table v-loading="loading" :data="logList" @selection-change="handleSelectionChange" class="data-table">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="日志编号" prop="operId" width="90" align="center" />
+      <el-table-column label="日志编号" prop="id" width="90" align="center" />
       <el-table-column label="系统模块" prop="title" show-overflow-tooltip />
       <el-table-column label="业务类型" width="100" align="center">
         <template #default="{ row }">
@@ -121,7 +121,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { Search, Refresh, Delete, Download, View } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
-import { listOperLog, deleteOperLog, cleanOperLog } from '@/api/system/operlog'
+import { listOperlog, deleteOperlog, cleanOperlog, exportOperlog } from '@/api/system/operlog'
 
 const businessTypeOptions = [
   { label: '其它', value: '0' },
@@ -173,7 +173,7 @@ async function getList() {
       queryParams.beginTime = ''
       queryParams.endTime = ''
     }
-    const res = await listOperLog(queryParams)
+    const res: any = await listOperlog(queryParams)
     logList.value = res.rows
     total.value = res.total
   } finally {
@@ -193,18 +193,18 @@ function resetQuery() {
 }
 
 function handleSelectionChange(selection: any[]) {
-  ids.value = selection.map((item) => item.operId)
+  ids.value = selection.map((item) => item.id)
   multiple.value = !selection.length
 }
 
 function handleDelete(row?: any) {
-  const operIds = row?.operId ? [row.operId] : ids.value
+  const operIds = row?.id ? [row.id] : ids.value
   ElMessageBox.confirm(`是否确认删除日志编号为"${operIds}"的数据项？`, '警告', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
   }).then(async () => {
-    await deleteOperLog(operIds.join(','))
+    await deleteOperlog(operIds.join(','))
     ElMessage.success('删除成功')
     getList()
   }).catch(() => {})
@@ -216,7 +216,7 @@ function handleClean() {
     cancelButtonText: '取消',
     type: 'warning'
   }).then(async () => {
-    await cleanOperLog()
+    await cleanOperlog()
     ElMessage.success('清空成功')
     getList()
   }).catch(() => {})
@@ -227,8 +227,13 @@ function handleView(row: any) {
   detailVisible.value = true
 }
 
-function handleExport() {
-  ElMessage.info('导出功能开发中')
+async function handleExport() {
+  try {
+    await exportOperlog(queryParams)
+    ElMessage.success('导出成功')
+  } catch {
+    ElMessage.error('导出失败')
+  }
 }
 
 onMounted(() => {

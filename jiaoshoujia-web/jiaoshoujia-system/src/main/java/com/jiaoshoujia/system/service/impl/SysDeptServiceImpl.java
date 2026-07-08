@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.jiaoshoujia.common.annotation.DataScope;
 import com.jiaoshoujia.common.exception.BusinessException;
 import com.jiaoshoujia.common.utils.MessageUtils;
 import com.jiaoshoujia.common.utils.StringUtils;
@@ -19,7 +18,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> implements ISysDeptService {
 
-    @DataScope(deptAlias = "sys_dept")
     @Override
     public List<SysDept> selectDeptList(SysDept dept) {
         LambdaQueryWrapper<SysDept> wrapper = new LambdaQueryWrapper<>();
@@ -60,20 +58,43 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impl
         } else {
             dept.setAncestors("0");
         }
-        save(dept);
-        return 1;
+        return save(dept) ? 1 : 0;
     }
 
     @Override
     public int updateDept(SysDept dept) {
+        SysDept oldDept = getById(dept.getId());
+        String newAncestors;
         if (dept.getParentId() != null && dept.getParentId() != 0L) {
             SysDept parent = getById(dept.getParentId());
-            if (parent != null) {
-                dept.setAncestors(parent.getAncestors() + "," + parent.getId());
-            }
+            newAncestors = (parent != null) ? parent.getAncestors() + "," + parent.getId() : "0";
+        } else {
+            newAncestors = "0";
         }
+        dept.setAncestors(newAncestors);
         updateById(dept);
+
+        if (oldDept != null && !newAncestors.equals(oldDept.getAncestors())) {
+            updateChildrenAncestors(dept.getId(), oldDept.getAncestors() + "," + oldDept.getId(),
+                    newAncestors + "," + dept.getId());
+        }
         return 1;
+    }
+
+    private void updateChildrenAncestors(Long parentId, String oldPrefix, String newPrefix) {
+        List<SysDept> children = lambdaQuery().eq(SysDept::getParentId, parentId).list();
+        for (SysDept child : children) {
+            String childAncestors = child.getAncestors();
+            if (childAncestors != null && childAncestors.startsWith(oldPrefix)) {
+                child.setAncestors(newPrefix + childAncestors.substring(oldPrefix.length()));
+            } else {
+                child.setAncestors(newPrefix);
+            }
+            updateById(child);
+            updateChildrenAncestors(child.getId(),
+                    oldPrefix + "," + child.getId(),
+                    child.getAncestors() + "," + child.getId());
+        }
     }
 
     @Override
@@ -81,8 +102,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impl
         if (hasChildByDeptId(deptId)) {
             throw new BusinessException(MessageUtils.message("dept.has.children"));
         }
-        removeById(deptId);
-        return 1;
+        return removeById(deptId) ? 1 : 0;
     }
 
     @Override

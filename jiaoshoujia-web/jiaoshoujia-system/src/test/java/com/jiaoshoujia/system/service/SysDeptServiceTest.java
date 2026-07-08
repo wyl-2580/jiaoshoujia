@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +36,12 @@ class SysDeptServiceTest {
 
     @BeforeEach
     void setUp() {
+        // MyBatis-Plus ServiceImpl 的 baseMapper/entityClass/mapperClass 位于父类，Mockito @InjectMocks 无法注入。
+        // 手动注入：baseMapper 提供 mock；entityClass/mapperClass 避免 lambdaQuery() 通过真实 MapperProxy 推断类型。
+        ReflectionTestUtils.setField(deptService, "baseMapper", deptMapper);
+        ReflectionTestUtils.setField(deptService, "entityClass", SysDept.class);
+        ReflectionTestUtils.setField(deptService, "mapperClass", SysDeptMapper.class);
+
         rootDept = new SysDept();
         rootDept.setId(1L);
         rootDept.setDeptName("总公司");

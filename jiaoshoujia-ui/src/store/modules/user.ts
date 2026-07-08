@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { login as loginApi, logout as logoutApi, getInfo as getInfoApi, type LoginData } from '@/api/system/auth'
 import { refreshToken as refreshTokenApi } from '@/api/system/auth'
 import { getToken, setToken, removeToken, setRefreshToken, removeRefreshToken } from '@/utils/auth'
+import router from '@/router'
+import { usePermissionStore } from '@/store/modules/permission'
 
 interface UserState {
   token: string
@@ -24,7 +26,7 @@ export const useUserStore = defineStore('user', {
     async login(userInfo: LoginData) {
       const { username, password } = userInfo
       const res = await loginApi({ username: username.trim(), password })
-      const { token, refreshToken } = res.data
+      const { access_token: token, refresh_token: refreshToken } = res.data
       setToken(token)
       this.token = token
       if (refreshToken) {
@@ -43,7 +45,7 @@ export const useUserStore = defineStore('user', {
         this.roles = ['ROLE_DEFAULT']
       }
 
-      this.name = user.nickName || user.userName
+      this.name = user.nickname || user.username
       this.avatar = user.avatar || ''
       return res.data
     },
@@ -61,7 +63,7 @@ export const useUserStore = defineStore('user', {
       const rt = getRefreshToken()
       if (!rt) throw new Error('No refresh token')
       const res = await refreshTokenApi(rt)
-      const { token, refreshToken } = res.data
+      const { access_token: token, refresh_token: refreshToken } = res.data
       setToken(token)
       this.token = token
       if (refreshToken) {
@@ -77,6 +79,14 @@ export const useUserStore = defineStore('user', {
       this.avatar = ''
       removeToken()
       removeRefreshToken()
+
+      const permissionStore = usePermissionStore()
+      permissionStore.addRoutes.forEach((route) => {
+        if (route.name) {
+          router.removeRoute(route.name)
+        }
+      })
+      permissionStore.$reset()
     },
   },
 })

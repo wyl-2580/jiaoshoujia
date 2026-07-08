@@ -29,8 +29,14 @@ let isRelogin = false
 
 service.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
+    if (response.config.responseType === 'blob') {
+      return response as any
+    }
     const res = response.data
     if (res.code === 200) {
+      if (res.data && typeof res.data === 'object' && !Array.isArray(res.data)) {
+        return { ...res, ...res.data } as any
+      }
       return res as any
     }
     if (res.code === 401) {
@@ -60,6 +66,12 @@ service.interceptors.response.use(
     if (error.response) {
       switch (error.response.status) {
         case 400: message = '请求错误'; break
+        case 401:
+          removeToken()
+          removeRefreshToken()
+          router.push('/login')
+          message = '登录已过期，请重新登录'
+          break
         case 403: message = '拒绝访问'; break
         case 404: message = '请求地址不存在'; break
         case 408: message = '请求超时'; break
@@ -79,20 +91,50 @@ service.interceptors.response.use(
   },
 )
 
-export function get<T = any>(url: string, params?: Record<string, any>, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+// 列表接口会额外返回 rows/total 等分页字段，用户接口返回 roles 等，
+// 故在标准结构上叠加索引签名，既保留 data 的类型推断，又允许访问这些附加字段。
+export type ApiResult<T = any> = ApiResponse<T> & Record<string, any>
+
+export function get<T = any>(url: string, params?: Record<string, any>, config?: AxiosRequestConfig): Promise<ApiResult<T>> {
   return service.get(url, { params, ...config })
 }
 
-export function post<T = any>(url: string, data?: Record<string, any>, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+export function post<T = any>(url: string, data?: Record<string, any>, config?: AxiosRequestConfig): Promise<ApiResult<T>> {
   return service.post(url, data, config)
 }
 
-export function put<T = any>(url: string, data?: Record<string, any>, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+export function put<T = any>(url: string, data?: Record<string, any>, config?: AxiosRequestConfig): Promise<ApiResult<T>> {
   return service.put(url, data, config)
 }
 
-export function del<T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+export function del<T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResult<T>> {
   return service.delete(url, config)
+}
+
+/**
+ * 下载文件（导出 Excel 等）。params 以查询参数形式提交，后端以 @ModelAttribute 绑定。
+ */
+export async function download(url: string, params?: Record<string, any>, fileName?: string): Promise<void> {
+  const response: AxiosResponse<Blob> = await service.post(url, null, {
+    params,
+    responseType: 'blob',
+  })
+  const blob = new Blob([response.data], {
+    type: (response.headers['content-type'] as string) || 'application/octet-stream',
+  })
+  let name = fileName || ''
+  if (!name) {
+    const disposition = response.headers['content-disposition'] as string | undefined
+    const match = disposition && /filename=([^;]+)/i.exec(disposition)
+    name = match ? decodeURIComponent(match[1].replace(/%20/g, ' ').trim()) : `export_${Date.now()}.xlsx`
+  }
+  const link = document.createElement('a')
+  link.href = window.URL.createObjectURL(blob)
+  link.download = name
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(link.href)
 }
 
 export default service

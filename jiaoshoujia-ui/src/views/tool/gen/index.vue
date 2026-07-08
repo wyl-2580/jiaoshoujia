@@ -142,7 +142,7 @@ function handleGenTable(row?: any) {
     return
   }
   request.get(`/api/tool/gen/generate/${tableId}`, { responseType: 'blob' }).then((res: any) => {
-    const blob = new Blob([res], { type: 'application/zip' })
+    const blob = new Blob([res.data || res], { type: 'application/zip' })
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url

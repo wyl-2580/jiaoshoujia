@@ -16,13 +16,13 @@ export const constantRoutes: RouteRecordRaw[] = [
     meta: { hidden: true },
   },
   {
-    path: '',
+    path: '/',
     component: Layout,
     redirect: '/index',
     children: [
       {
         path: '/index',
-        component: () => import('@/views/index/index.vue'),
+        component: () => import('@/views/dashboard/index.vue'),
         name: 'Index',
         meta: { title: '首页', icon: 'HomeFilled', affix: true },
       },
