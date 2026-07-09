@@ -9,6 +9,8 @@ import com.jiaoshoujia.common.utils.ExcelUtils;
 import com.jiaoshoujia.common.utils.SecurityUtils;
 import com.jiaoshoujia.domain.SysUser;
 import com.jiaoshoujia.domain.dto.SysUserQuery;
+import com.jiaoshoujia.common.constant.Constants;
+import com.jiaoshoujia.framework.cache.CacheService;
 import com.jiaoshoujia.service.ISysUserService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -17,15 +19,18 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/system/user")
 public class SysUserController {
 
     private final ISysUserService userService;
+    private final CacheService cacheService;
 
-    public SysUserController(ISysUserService userService) {
+    public SysUserController(ISysUserService userService, CacheService cacheService) {
         this.userService = userService;
+        this.cacheService = cacheService;
     }
 
     private static final int MAX_PAGE_SIZE = 100;
@@ -87,7 +92,11 @@ public class SysUserController {
     public R<Void> resetPwd(@Valid @RequestBody SysUser user) {
         userService.checkPasswordStrength(user.getPassword());
         user.setPassword(SecurityUtils.encryptPassword(user.getPassword()));
-        return userService.resetPwd(user) > 0 ? R.ok() : R.fail();
+        if (userService.resetPwd(user) <= 0) {
+            return R.fail();
+        }
+        cacheService.set(Constants.FORCE_LOGOUT_KEY + user.getId(), true, 30, TimeUnit.MINUTES);
+        return R.ok();
     }
 
     @PreAuthorize("hasAuthority('system:user:edit')")

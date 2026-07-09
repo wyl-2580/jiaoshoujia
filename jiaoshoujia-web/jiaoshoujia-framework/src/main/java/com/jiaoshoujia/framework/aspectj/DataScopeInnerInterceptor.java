@@ -25,6 +25,7 @@ public class DataScopeInnerInterceptor implements InnerInterceptor {
         if (StringUtils.isEmpty(dataScope)) {
             return;
         }
+        DataScopeContextHolder.clear();
         String originalSql = boundSql.getSql();
         try {
             Statement statement = CCJSqlParserUtil.parse(originalSql);

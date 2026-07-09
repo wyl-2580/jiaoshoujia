@@ -44,6 +44,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 filterChain.doFilter(request, response);
                 return;
             }
+
+            Long userId = jwtTokenProvider.getUserId(token);
+            if (userId != null && cacheService.hasKey(Constants.FORCE_LOGOUT_KEY + userId)) {
+                String tokenId = jwtTokenProvider.getTokenId(token);
+                cacheService.delete(Constants.LOGIN_USER_KEY + tokenId);
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"code\":401,\"msg\":\"密码已被重置，请重新登录\"}");
+                return;
+            }
+
             String tokenId = jwtTokenProvider.getTokenId(token);
             String cacheKey = Constants.LOGIN_USER_KEY + tokenId;
             LoginUser loginUser = cacheService.get(cacheKey);

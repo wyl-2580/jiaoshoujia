@@ -15,6 +15,8 @@ public final class Constants {
 
     public static final String LOGIN_ATTEMPT_KEY = "login_attempt:";
 
+    public static final String FORCE_LOGOUT_KEY = "force_logout:";
+
     public static final int MAX_LOGIN_ATTEMPTS = 5;
 
     public static final int LOCK_DURATION_MINUTES = 30;

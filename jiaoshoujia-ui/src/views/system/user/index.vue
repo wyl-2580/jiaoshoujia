@@ -98,23 +98,27 @@
           <el-table-column label="状态" width="80" align="center">
             <template #default="{ row }">
               <el-switch
+                v-if="hasEditPermi"
                 v-model="row.status"
                 :active-value="0"
                 :inactive-value="1"
                 @change="handleStatusChange(row)"
               />
+              <el-tag v-else :type="row.status === 0 ? 'success' : 'danger'" size="small">
+                {{ row.status === 0 ? '正常' : '停用' }}
+              </el-tag>
             </template>
           </el-table-column>
           <el-table-column label="创建时间" prop="createTime" width="160" align="center" />
-          <el-table-column label="操作" width="200" align="center" fixed="right">
+          <el-table-column v-if="hasAnyOperPermi" label="操作" width="200" align="center" fixed="right">
             <template #default="{ row }">
               <el-button link type="primary" :icon="Edit" @click="handleUpdate(row)" v-hasPermi="['system:user:edit']">修改</el-button>
               <el-button link type="primary" :icon="Delete" @click="handleDelete(row)" v-hasPermi="['system:user:remove']">删除</el-button>
-              <el-dropdown @command="(cmd: string) => handleCommand(cmd, row)">
+              <el-dropdown v-if="hasResetPwdPermi" @command="(cmd: string) => handleCommand(cmd, row)">
                 <el-button link type="primary" :icon="DArrowRight">更多</el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="resetPwd" :icon="Key" v-hasPermi="['system:user:resetPwd']">重置密码</el-dropdown-item>
+                    <el-dropdown-item command="resetPwd" :icon="Key">重置密码</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -247,12 +251,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { Search, Refresh, Plus, Edit, Delete, Download, DArrowRight, Key } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { listUser, getUser, addUser, updateUser, deleteUser, resetUserPwd, changeUserStatus, exportUser } from '@/api/system/user'
 import { listDept } from '@/api/system/dept'
 import { optionselect as roleOptionselect } from '@/api/system/role'
+import { useUserStore } from '@/store/modules/user'
+
+const userStore = useUserStore()
+function checkPermi(permi: string): boolean {
+  return userStore.permissions.includes(permi)
+}
+const hasEditPermi = computed(() => checkPermi('system:user:edit'))
+const hasRemovePermi = computed(() => checkPermi('system:user:remove'))
+const hasResetPwdPermi = computed(() => checkPermi('system:user:resetPwd'))
+const hasAnyOperPermi = computed(() => hasEditPermi.value || hasRemovePermi.value || hasResetPwdPermi.value)
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -481,9 +495,13 @@ function handleCommand(command: string, row: any) {
 function submitResetPwd() {
   resetPwdFormRef.value?.validate(async (valid) => {
     if (!valid) return
-    await resetUserPwd({ id: resetPwdForm.id!, password: resetPwdForm.password })
-    ElMessage.success('重置密码成功')
-    resetPwdVisible.value = false
+    try {
+      await resetUserPwd({ id: resetPwdForm.id!, password: resetPwdForm.password })
+      ElMessage.success('重置密码成功')
+      resetPwdVisible.value = false
+    } catch {
+      // 后端异常由全局拦截器处理提示
+    }
   })
 }
 

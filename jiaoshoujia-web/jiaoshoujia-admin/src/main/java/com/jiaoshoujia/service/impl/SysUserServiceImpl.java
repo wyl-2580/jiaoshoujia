@@ -179,7 +179,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             throw new BusinessException(MessageUtils.message("user.admin.not.allow.reset"));
         }
         if (user.getId().equals(SecurityUtils.getUserId())) {
-            throw new BusinessException(MessageUtils.message("user.current.not.allow.delete"));
+            throw new BusinessException(MessageUtils.message("user.current.not.allow.reset"));
         }
         return lambdaUpdate().eq(SysUser::getId, user.getId())
                 .set(SysUser::getPassword, user.getPassword())

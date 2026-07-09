@@ -99,6 +99,8 @@ public class AuthController {
         loginInforService.recordLogin(username, ip, userAgent, 0, "登录成功");
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
 
+        cacheService.delete(Constants.FORCE_LOGOUT_KEY + loginUser.getUserId());
+
         String accessToken = jwtTokenProvider.createAccessToken(loginUser);
         String refreshToken = jwtTokenProvider.createRefreshToken(loginUser);
 
