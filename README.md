@@ -40,8 +40,7 @@ jiaoshoujia/
 ├── jiaoshoujia-web/              # 后端（多模块 Maven，Java 17）
 │   ├── jiaoshoujia-common/       #   公共基础（工具类、常量、异常、注解）
 │   ├── jiaoshoujia-framework/    #   框架核心（Security、缓存、限流、AOP）
-│   ├── jiaoshoujia-system/       #   系统管理（用户、角色、菜单、部门、字典、日志、任务）
-│   └── jiaoshoujia-admin/        #   启动入口（Controller + 配置文件）
+│   └── jiaoshoujia-admin/        #   业务模块（Controller + Service + Domain + Mapper + 启动类）
 ├── jiaoshoujia-ui/               # 前端（Vue 3 + Element Plus）
 ├── sql/                          # 数据库脚本
 │   └── mysql/init.sql
@@ -59,7 +58,7 @@ jiaoshoujia/
 | `annotation/` | 自定义注解：`@Log`（操作日志）、`@DataScope`（数据权限）、`@RateLimiter`（限流）、`@Anonymous`（匿名访问） |
 | `constant/` | 全局常量：`Constants`、`HttpStatus`、`UserConstants` |
 | `core/` | 基础类：`R<T>`（统一响应体）、`BaseEntity`（基类）、`PageResult`（分页结果） |
-| `enums/` | 枚举：`BusinessType`（业务类型）、`DataScopeType`、`OperatorType` |
+| `enums/` | 枚举：`BusinessType`（业务类型）、`OperatorType`（操作人类型） |
 | `exception/` | 异常体系：`BusinessException`、`UnauthorizedException` |
 | `utils/` | 工具类：`SecurityUtils`、`StringUtils`、`IpUtils`、`ServletUtils`、`ExcelUtils`、`MessageUtils`（i18n） |
 
@@ -76,43 +75,41 @@ jiaoshoujia/
 | `xss/` | XSS 防护：请求参数自动过滤 |
 | `config/` | 配置类：`MybatisPlusConfig`（分页+数据权限插件）、`CorsConfig`、`Knife4jConfig`、`SentinelConfig`、`QuartzConfig`、`I18nConfig` |
 
-### jiaoshoujia-system（系统管理模块）
+### jiaoshoujia-admin（业务模块）
 
-核心业务代码，包含完整的后台管理功能。
+完整的业务模块，包含 Controller、Service、Domain、Mapper 等所有业务分层，同时也是 Spring Boot 启动入口。
+
+#### 包结构
+
+| 目录 | 内容 |
+|---|---|
+| `controller/` | REST Controller：认证、用户、角色、菜单、部门、字典、日志、任务、文件 |
+| `service/` | 业务接口：`ISysUserService`、`ISysRoleService`、`ISysMenuService` 等 |
+| `service/impl/` | 业务实现：`SysUserServiceImpl`、`SysRoleServiceImpl` 等 |
+| `domain/` | 实体类：`SysUser`、`SysRole`、`SysMenu`、`SysDept`、`SysDictType`、`SysDictData`、`SysOperLog`、`SysLoginInfor`、`SysJob` 等 |
+| `domain/dto/` | 传输对象：`SysUserQuery` |
+| `mapper/` | MyBatis Mapper 接口 |
+| `quartz/` | Quartz 定时任务调度：`ScheduleUtils`、`QuartzJobExecution` 等 |
+| `quartz/task/` | 具体定时任务实现：`SampleTask` |
+| `listener/` | 事件监听：`OperLogEventListener`（操作日志异步落库） |
+| `security/` | 安全认证桥接：`UserDetailsServiceImpl`（Spring Security UserDetailsService 实现） |
+
+#### 业务功能
 
 | 功能 | 关键类 | 说明 |
 |---|---|---|
-| 用户管理 | `SysUser` / `ISysUserService` | 增删改查、角色分配、密码重置、状态切换、导出、三员账号保护 |
-| 角色管理 | `SysRole` / `ISysRoleService` | 增删改查、菜单权限分配、数据权限设置、三权分立校验 |
-| 菜单管理 | `SysMenu` / `ISysMenuService` | 树形菜单、按钮权限、动态路由，无万能超管——权限严格来自角色 |
-| 部门管理 | `SysDept` / `ISysDeptService` | 组织架构树、祖级链维护、循环引用检测 |
-| 字典管理 | `SysDictType` / `SysDictData` | 下拉选项维护 |
-| 操作日志 | `SysOperLog` + `OperLogEventListener` | 异步落库，记录操作人/时间/IP/参数/耗时，支持导出 |
-| 登录日志 | `SysLoginInfor` / `ISysLoginInforService` | 登录/登出自动记录，含浏览器/OS/IP，支持导出 |
-| 定时任务 | `SysJob` / `ISysJobService` | Quartz 可视化管理，启停、手动执行 |
-| 安全认证 | `UserDetailsServiceImpl` | Spring Security UserDetailsService 实现 |
+| 用户管理 | `SysUserController` / `ISysUserService` | 增删改查、角色分配、密码重置、状态切换、导出、三员账号保护 |
+| 角色管理 | `SysRoleController` / `ISysRoleService` | 增删改查、菜单权限分配、数据权限设置、三权分立校验 |
+| 菜单管理 | `SysMenuController` / `ISysMenuService` | 树形菜单、按钮权限、动态路由，无万能超管——权限严格来自角色 |
+| 部门管理 | `SysDeptController` / `ISysDeptService` | 组织架构树、祖级链维护、循环引用检测 |
+| 字典管理 | `SysDictTypeController` / `SysDictDataController` | 下拉选项维护 |
+| 操作日志 | `SysOperLogController` + `OperLogEventListener` | 异步落库，记录操作人/时间/IP/参数/耗时，支持导出 |
+| 登录日志 | `SysLoginInforController` / `ISysLoginInforService` | 登录/登出自动记录，含浏览器/OS/IP，支持导出 |
+| 定时任务 | `SysJobController` / `ISysJobService` | Quartz 可视化管理，启停、手动执行 |
+| 认证授权 | `AuthController` | 登录、登出、刷新 Token、获取用户信息、获取动态路由、个人资料、修改密码 |
+| 文件管理 | `FileController` | 文件上传、文件下载 |
 
-### jiaoshoujia-admin（启动入口模块）
-
-Spring Boot 启动类、所有 REST Controller 和配置文件（`application.yml`、RSA 密钥、i18n 资源）所在模块。
-
-已实现的 Controller：
-
-| Controller | 路径 | 功能 |
-|---|---|---|
-| `AuthController` | `/auth` | 登录、登出、刷新 Token、获取用户信息、获取动态路由、个人资料、修改密码 |
-| `SysUserController` | `/system/user` | 用户 CRUD、导出、重置密码、状态切换 |
-| `SysRoleController` | `/system/role` | 角色 CRUD、导出、菜单权限分配 |
-| `SysMenuController` | `/system/menu` | 菜单 CRUD、菜单树 |
-| `SysDeptController` | `/system/dept` | 部门 CRUD、部门树 |
-| `SysDictTypeController` | `/system/dict/type` | 字典类型 CRUD、导出 |
-| `SysDictDataController` | `/system/dict/data` | 字典数据 CRUD |
-| `SysOperLogController` | `/system/operlog` | 操作日志查询、导出、删除、清空 |
-| `SysLoginInforController` | `/system/logininfor` | 登录日志查询、导出、删除、清空 |
-| `SysJobController` | `/system/job` | 定时任务 CRUD、启停、手动执行 |
-| `FileController` | `/common` | 文件上传、文件下载 |
-
-**依赖方向**：`admin` → `system` → `framework` → `common`
+**依赖方向**：`admin` → `framework` → `common`
 
 ## 环境要求
 
@@ -303,7 +300,7 @@ npm run dev
 ### 新增业务模块
 
 1. **创建数据库表**并在 `sql/` 下更新初始化脚本
-2. **后端**：在 `jiaoshoujia-system` 中新建 Domain / Mapper / Service，在 `jiaoshoujia-admin` 中新建 Controller
+2. **后端**：在 `jiaoshoujia-admin` 中新建 Domain / Mapper / Service / Controller（同一模块内按包分层）
 3. **前端**：在 `src/api/` 中新建 API 文件，在 `src/views/` 中新建页面
 4. **添加菜单权限**：在「菜单管理」中添加对应的目录/菜单/按钮，或在 `init.sql` 中追加
 
@@ -339,7 +336,7 @@ public List<YourEntity> selectList(YourEntity query) {
 }
 ```
 
-支持的数据范围类型在 `DataScopeType` 枚举中定义。
+支持的数据范围类型包括：全部数据、自定义数据、本部门数据、本部门及以下数据、仅本人数据。
 
 ### 运行单元测试
 
@@ -348,7 +345,7 @@ cd jiaoshoujia-web
 mvn test
 ```
 
-测试文件位于各模块的 `src/test/java/` 目录，使用 JUnit 5 + Mockito。
+测试文件位于 `jiaoshoujia-admin/src/test/java/` 目录，使用 JUnit 5 + Mockito。
 
 ## 缓存配置
 
