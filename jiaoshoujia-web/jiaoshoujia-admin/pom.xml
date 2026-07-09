@@ -11,12 +11,18 @@
     </parent>
 
     <artifactId>jiaoshoujia-admin</artifactId>
-    <description>启动入口模块 - Controller + 启动类 + 配置文件</description>
+    <description>业务模块 - Controller + Service + Domain + Mapper + 启动类</description>
 
     <dependencies>
         <dependency>
             <groupId>com.jiaoshoujia</groupId>
-            <artifactId>jiaoshoujia-system</artifactId>
+            <artifactId>jiaoshoujia-framework</artifactId>
+        </dependency>
+
+        <!-- Quartz -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-quartz</artifactId>
         </dependency>
         <!-- MySQL -->
         <dependency>

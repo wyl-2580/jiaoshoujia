@@ -15,8 +15,6 @@
     <modules>
         <module>jiaoshoujia-common</module>
         <module>jiaoshoujia-framework</module>
-        <module>jiaoshoujia-system</module>
-
         <module>jiaoshoujia-admin</module>
     </modules>
 
@@ -58,11 +56,6 @@
             <dependency>
                 <groupId>com.jiaoshoujia</groupId>
                 <artifactId>jiaoshoujia-framework</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.jiaoshoujia</groupId>
-                <artifactId>jiaoshoujia-system</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- MyBatis-Plus -->
